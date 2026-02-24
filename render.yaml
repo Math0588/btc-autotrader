@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: btc-autotrader
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -u server.py
+    envVars:
+      - key: STARTING_CAPITAL
+        value: "100"
+      - key: SCAN_INTERVAL
+        value: "300"
+      - key: MIN_EDGE
+        value: "2.5"
+      - key: KELLY_FRAC
+        value: "0.15"
+      - key: TELEGRAM_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT
+        sync: false
+      - key: PYTHON_VERSION
+        value: "3.11.0"

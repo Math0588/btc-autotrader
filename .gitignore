@@ -1,0 +1,8 @@
+autotrader_state.json
+autotrader.log
+autotrader_test*.txt
+test_output.txt
+test_fetch.py
+__pycache__/
+*.pyc
+.env
