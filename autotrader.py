@@ -52,18 +52,18 @@ log = logging.getLogger("autotrader")
 CONFIG = {
     "starting_capital": float(os.getenv("STARTING_CAPITAL", "100")),
     "scan_interval": int(os.getenv("SCAN_INTERVAL", "900")),  # 15 min
-    "min_edge_pct": float(os.getenv("MIN_EDGE", "2.0")),
+    "min_edge_pct": float(os.getenv("MIN_EDGE", "3.0")),
     "kelly_fraction": float(os.getenv("KELLY_FRAC", "0.20")),  # Conservative 20% Kelly
     "max_position_pct": 0.15,       # Max 15% of capital per trade
     "max_exposure_pct": 0.80,       # Max 80% of capital deployed
     "polymarket_fee_pct": 2.0,
     "risk_free_rate": 0.045,
     "btc_drift_real": 0.10,
-    "min_dte": 1,                   # Allow trades up to 24h before expiry (more trades)
-    "max_dte": 45,                  # Extend timeframe
-    "min_liquidity": 2000,          # Reduced liquidity requirement to catch newer markets
-    "min_volume": 500,              # Reduced volume requirement
-    "min_win_prob": 0.10,           # Lower win prob threshold to catch 10% "lotto tickets" with high edge
+    "min_dte": 2,
+    "max_dte": 30,
+    "min_liquidity": 5000,
+    "min_volume": 1000,
+    "min_win_prob": 0.15,           # Don't take <15% win prob bets
     "max_drawdown_pct": 30,         # Reduce sizing if drawdown exceeds 30%
     "telegram_token": os.getenv("TELEGRAM_TOKEN", ""),
     "telegram_chat": os.getenv("TELEGRAM_CHAT", ""),
