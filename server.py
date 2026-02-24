@@ -42,21 +42,22 @@ log = logging.getLogger("autotrader")
 CONFIG = {
     "starting_capital": float(os.getenv("STARTING_CAPITAL", "100")),
     "scan_interval": int(os.getenv("SCAN_INTERVAL", "300")),
-    "min_edge_pct": float(os.getenv("MIN_EDGE", "2.0")),      # 2% edge min
-    "kelly_fraction": 1.0,                                    # Full Kelly / Direct Sizing
-    "max_position_pct": 1.0,                                  # ALL-IN ALLOWED: Max 100% capital per trade
-    "max_exposure_pct": 1.0,                                  # 100% exposure (0% cash kept)
-    "min_profit_pct": 25.0,                                   # EXPECTED REWARD: Must pay at least +25% ROI to risk the capital
-    "polymarket_fee_pct": 2.0,                                # 2% simulated orderbook spread/fee
+    "min_edge_pct": float(os.getenv("MIN_EDGE", "2.0")),      # 2% edge min to enter
+    "exit_edge_pct": 0.5,                                     # RECORRELATION: Exit when edge drops below 0.5% (fair value reached)
+    "kelly_fraction": 0.50,                                   # Half-Kelly (Optimum for rapid growth without guaranteed ruin)
+    "max_position_pct": 0.50,                                 # Max 50% capital per trade (prevent 1 black swan wiping 100%)
+    "max_exposure_pct": 0.95,                                 # Keep 5% cash minimum
+    "min_profit_pct": 10.0,                                   # Minimum raw return
+    "assumed_slippage": 0.015,                                # Assume 1.5 cents slip on polymarket (execution cost)
+    "polymarket_fee_pct": 0.0,                                # Polymarket has no fees, only spread which we account for via slippage
     "risk_free_rate": 0.045,
-    "min_dte": 1,
-    "max_dte": 45,
-    "min_liquidity": 3000,
+    "min_dte": 0.5,                                           # Allow closer to expiry
+    "max_dte": 60,
+    "min_liquidity": 2000,
     "min_volume": 500,
-    "min_win_prob": 0.40,         # STRICT RULE: No lottery tickets (<40% chance)
-    "max_drawdown_pct": 50,       # Relaxed drawdown limit since we go all-in
-    "take_profit_pct": 35.0,      # RECORRELATION: Sell if +35% unrealized profit
-    "stop_loss_pct": -40.0,       # CUT LOSERS: Sell if -40% to save remaining capital
+    "min_win_prob": 0.25,                                     # Cut absolute lotteries, but allow 25% if heavily mispriced
+    "stop_loss_prob": 0.10,                                   # THESIS INVALIDATION: If our model says < 10% chance, cut loss and run!
+    "max_drawdown_pct": 50,                                   
     "telegram_token": os.getenv("TELEGRAM_TOKEN", ""),
     "telegram_chat": os.getenv("TELEGRAM_CHAT", ""),
 }
@@ -316,27 +317,29 @@ def parse_market(data, token_type="BTC"):
     if dte <= 0:
         return None
 
-    yes = None
-    op = data.get("outcomePrices", "")
-    if op:
-        try:
-            prices = json.loads(op) if isinstance(op, str) else op
-            if len(prices) >= 2:
-                yes = float(prices[0])
-        except Exception:
-            pass
-    if yes is None:
-        bb, ba = data.get("bestBid"), data.get("bestAsk")
-        if bb and ba:
-            yes = (float(bb) + float(ba)) / 2
-    if yes is None:
+    bb, ba = data.get("bestBid"), data.get("bestAsk")
+    if bb is None or ba is None:
         return None
+
+    yes_bid = float(bb)
+    yes_ask = float(ba)
+    
+    # If spread is absurd, skip
+    if yes_ask - yes_bid > 0.15:
+        return None
+
+    # Taker entries
+    entry_yes = yes_ask + CONFIG["assumed_slippage"]
+    entry_no = (1 - yes_bid) + CONFIG["assumed_slippage"] # To buy NO, we pay 1 - yes_bid
+
+    pm_prob = yes_ask * 100 # Implied probability if we want to buy YES
 
     return {
         "title": title, "cid": data.get("conditionId", ""),
         "barrier": barrier, "scenario": scenario, "token": token_type,
-        "yes": round(yes, 4), "no": round(1-yes, 4),
-        "pm_prob": round(yes*100, 2), "expiry_dt": expiry_dt,
+        "yes_ask": round(yes_ask, 4), "yes_bid": round(yes_bid, 4),
+        "entry_yes": round(entry_yes, 4), "entry_no": round(entry_no, 4),
+        "pm_prob": round(pm_prob, 2), "expiry_dt": expiry_dt,
         "dte": round(dte, 2),
         "vol": float(data.get("volume",0) or data.get("volumeNum",0) or 0),
         "liq": float(data.get("liquidity",0) or data.get("liquidityNum",0) or 0),
@@ -397,25 +400,27 @@ def analyze(market, spot, iv_pts, capital, exposure):
     sigma = iv / 100.0
 
     prob = bs_prob(spot, barrier, dte, sigma, CONFIG["risk_free_rate"], market["scenario"])
-    model_pct = prob * 100
-    edge = model_pct - pm_prob
-
-    if abs(edge) < CONFIG["min_edge_pct"]:
-        return None
-
-    if edge > 0:
-        direction, entry, win_p = "BUY_YES", market["yes"], prob
+    
+    # Evaluate edge based on what we would actually pay (Taker)
+    entry_yes_price = market["entry_yes"]
+    entry_no_price = market["entry_no"]
+    
+    edge_yes = prob - entry_yes_price
+    edge_no = (1 - prob) - entry_no_price
+    
+    direction = None
+    if edge_yes > CONFIG["min_edge_pct"] / 100 and prob >= CONFIG["min_win_prob"]:
+        direction, entry, win_p, edge = "BUY_YES", entry_yes_price, prob, edge_yes
         desc = f"BTC AU-DESSUS ${barrier:,.0f}"
-    else:
-        direction, entry, win_p = "BUY_NO", market["no"], 1-prob
+    elif edge_no > CONFIG["min_edge_pct"] / 100 and (1 - prob) >= CONFIG["min_win_prob"]:
+        direction, entry, win_p, edge = "BUY_NO", entry_no_price, 1-prob, edge_no
         desc = f"BTC SOUS ${barrier:,.0f}"
 
-    # STRICT QUALIFIER: Avoid obvious lottery tickets reducing odds of total ruin
-    if win_p < CONFIG["min_win_prob"]:
+    if not direction:
         return None
 
-    fee = CONFIG["polymarket_fee_pct"] / 100
-    payout = (1.0 - entry) * (1 - fee)
+    fee = 0 # No explicit fee as we handle it via slippage now
+    payout = (1.0 - entry)
     cost = entry
     if cost <= 0 or payout <= 0:
         return None
@@ -426,6 +431,10 @@ def analyze(market, spot, iv_pts, capital, exposure):
 
     b = payout / cost
     kelly = max(0, (win_p*b - (1-win_p))/b) * CONFIG["kelly_fraction"]
+
+    # Limit Kelly to strict parameters
+    if kelly <= 0:
+        return None
 
     # Drawdown control
     dd = (1 - capital / CONFIG["starting_capital"]) * 100
@@ -533,46 +542,55 @@ def settle(state, spot, iv_pts):
         sigma = (iv / 100.0) if (iv and iv > 0) else 0.55
 
         model_prob_above = bs_prob(spot, pos["barrier"], max(0.1, dte), sigma, CONFIG["risk_free_rate"], "above")
-        fair_price_per_contract = model_prob_above if pos["direction"] == "BUY_YES" else (1 - model_prob_above)
         
-        # Apply Polymarket exit spread/fee to sell early
-        sell_value = (pos["n"] * fair_price_per_contract) * (1 - CONFIG["polymarket_fee_pct"] / 100)
+        # Fair price according to current models
+        current_model_prob = model_prob_above if pos["direction"] == "BUY_YES" else (1 - model_prob_above)
+        
+        # Track our current edge: Does the model still think we have an advantage?
+        # Entry price was the probability we paid.
+        current_edge = current_model_prob - pos["entry"]
+        current_edge_pct = current_edge * 100
+        
+        # Simulated sell value
+        sell_value = (pos["n"] * current_model_prob) * (1 - CONFIG["polymarket_fee_pct"] / 100)
         unrealized_pnl_pct = (sell_value / pos["cost"]) * 100 - 100
+        pnl = sell_value - pos["cost"]
 
-        if unrealized_pnl_pct >= CONFIG["take_profit_pct"]:
-            # TAKE PROFIT! The market recorrelated to our model.
-            pnl = sell_value - pos["cost"]
+        # EXITS LOGIC
+        # 1. Take Profit / Recorrelation achieved: 
+        # If edge falls below a threshold (Ex: 0.5%), the market has converged to fair value. Sell.
+        if current_edge_pct <= CONFIG["exit_edge_pct"] and unrealized_pnl_pct > 0:
             state["capital"] += sell_value
             state["total_pnl"] += pnl
             state.setdefault("early_tp", 0)
             state["early_tp"] += 1
             
             pos["pnl"] = round(pnl, 2)
-            pos["status"], pos["result"] = "closed", "TP(Early)"
+            pos["status"], pos["result"] = "closed", "TP(Recorrelated)"
             pos["settled_at"] = now.isoformat()
             state["closed_trades"].append(pos)
             
-            log.info(f"🎯 TAKE PROFIT: {pos['desc']} | PnL: ${pos['pnl']:+.2f} ({unrealized_pnl_pct:+.1f}%)")
-            tg_send(f"🎯 <b>TAKE PROFIT</b>: {pos['desc']}\n"
-                    f"Recorrelation hit! PnL: <code>${pos['pnl']:+.2f} ({unrealized_pnl_pct:+.1f}%)</code>")
+            log.info(f"🎯 RECORRELATION EXIT: {pos['desc']} | Edge dropped to {current_edge_pct:.1f}% | PnL: ${pos['pnl']:+.2f} ({unrealized_pnl_pct:+.1f}%)")
+            tg_send(f"🎯 <b>RECORRELATION EXIT</b>: {pos['desc']}\n"
+                    f"Market converged to Fair Value. PnL: <code>${pos['pnl']:+.2f} ({unrealized_pnl_pct:+.1f}%)</code>")
             continue
 
-        if unrealized_pnl_pct <= CONFIG["stop_loss_pct"]:
-            # STOP LOSS! Cut losses instead of losing 100% at expiry.
-            pnl = sell_value - pos["cost"]
+        # 2. Stop Loss / Thesis Dead:
+        # If the probability of success crashes below our tolerance, we cut the trade.
+        if current_model_prob <= CONFIG["stop_loss_prob"]:
             state["capital"] += sell_value
             state["total_pnl"] += pnl
             state.setdefault("early_sl", 0)
             state["early_sl"] += 1
             
             pos["pnl"] = round(pnl, 2)
-            pos["status"], pos["result"] = "closed", "SL(Early)"
+            pos["status"], pos["result"] = "closed", "SL(Dead Thesis)"
             pos["settled_at"] = now.isoformat()
             state["closed_trades"].append(pos)
 
-            log.info(f"✂️ STOP LOSS: {pos['desc']} | PnL: ${pos['pnl']:+.2f} ({unrealized_pnl_pct:+.1f}%)")
-            tg_send(f"✂️ <b>STOP LOSS</b>: {pos['desc']}\n"
-                    f"Cut early! PnL: <code>${pos['pnl']:+.2f} ({unrealized_pnl_pct:+.1f}%)</code>")
+            log.info(f"✂️ THESIS STOP LOSS: {pos['desc']} | Prob crashed to {current_model_prob*100:.1f}% | PnL: ${pos['pnl']:+.2f} ({unrealized_pnl_pct:+.1f}%)")
+            tg_send(f"✂️ <b>THESIS INVALIDATED (SL)</b>: {pos['desc']}\n"
+                    f"Probability dropped too low. Cut early! PnL: <code>${pos['pnl']:+.2f} ({unrealized_pnl_pct:+.1f}%)</code>")
             continue
             
         # Position remains open
