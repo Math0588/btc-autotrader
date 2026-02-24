@@ -816,6 +816,184 @@ def health():
     return "OK", 200
 
 
+# ─── Telegram Command Handler ────────────────────────────────────────────────
+
+TG_LAST_UPDATE = 0
+
+
+def mtm_position(pos, spot, iv_pts):
+    """
+    Mark-to-Market a position: calculate its current fair value
+    based on the model's estimate, not the original entry price.
+    """
+    barrier = pos["barrier"]
+    entry = pos["entry"]
+    n = pos["n"]
+    cost = pos["cost"]
+    direction = pos["direction"]
+
+    # Get time to expiry
+    try:
+        exp = datetime.fromisoformat(pos["expiry_dt"])
+        dte = max(0.1, (exp - datetime.now(timezone.utc)).total_seconds() / 86400)
+    except Exception:
+        dte = 1
+
+    # Get current model probability
+    moneyness = barrier / spot
+    iv = interp_iv(iv_pts, moneyness, dte) if iv_pts else None
+    if not iv or iv <= 0:
+        iv = 55.0  # Default IV
+    sigma = iv / 100.0
+
+    # Model probability of being above barrier at expiry
+    model_prob_above = bs_prob(spot, barrier, dte, sigma, CONFIG["risk_free_rate"], "above")
+
+    if direction == "BUY_YES":
+        # We bought YES, current fair value = model probability
+        fair_value_per_contract = model_prob_above
+    else:
+        # We bought NO, current fair value = 1 - model probability
+        fair_value_per_contract = 1 - model_prob_above
+
+    # Mark-to-market PnL
+    mtm_value = fair_value_per_contract * n  # Total value of position at fair price
+    unrealized_pnl = mtm_value - cost
+
+    return {
+        "fair_value": round(fair_value_per_contract, 4),
+        "mtm_value": round(mtm_value, 4),
+        "unrealized_pnl": round(unrealized_pnl, 4),
+        "pnl_pct": round((unrealized_pnl / cost) * 100, 1) if cost > 0 else 0,
+        "model_prob": round(model_prob_above * 100, 1),
+        "dte_hours": round(dte * 24, 0),
+    }
+
+
+def handle_pnl_command():
+    """Handle /pnl command: show live mark-to-market PnL."""
+    state = BOT_STATE
+    if not state:
+        tg_send("Bot not initialized yet.")
+        return
+
+    spot = fetch_spot()
+    if not spot:
+        tg_send("Cannot fetch BTC price.")
+        return
+
+    iv_pts, _ = fetch_iv_surface()
+
+    positions = state.get("positions", [])
+    exposure = sum(p["cost"] for p in positions)
+    total_mtm_pnl = 0
+
+    msg = f"📊 <b>PnL LIVE — Mark-to-Market</b>\n"
+    msg += f"━━━━━━━━━━━━━━━━━━━━━\n"
+    msg += f"BTC: <code>${spot:,.0f}</code>\n\n"
+
+    if not positions:
+        msg += "<i>Aucune position ouverte</i>\n"
+    else:
+        for pos in positions:
+            mtm = mtm_position(pos, spot, iv_pts)
+            total_mtm_pnl += mtm["unrealized_pnl"]
+            emoji = "🟢" if mtm["unrealized_pnl"] >= 0 else "🔴"
+
+            msg += f"{emoji} <b>{pos['desc']}</b>\n"
+            msg += f"   Entry: {pos['entry']:.2f} → Fair: {mtm['fair_value']:.2f}\n"
+            msg += f"   PnL: <code>${mtm['unrealized_pnl']:+.2f}</code> ({mtm['pnl_pct']:+.1f}%)\n"
+            msg += f"   DTE: {mtm['dte_hours']:.0f}h\n\n"
+
+    total_value = state["capital"] + exposure + total_mtm_pnl
+    total_return = (total_value - state["initial_capital"]) / state["initial_capital"] * 100
+    wr = state["wins"] / max(state["total_trades"], 1) * 100
+
+    msg += f"━━━━━━━━━━━━━━━━━━━━━\n"
+    msg += f"💰 Capital libre: <code>${state['capital']:.2f}</code>\n"
+    msg += f"📦 Exposition: <code>${exposure:.2f}</code>\n"
+    msg += f"📈 Unrealized PnL: <code>${total_mtm_pnl:+.2f}</code>\n"
+    msg += f"💼 <b>Valeur totale: <code>${total_value:.2f}</code></b>\n"
+    msg += f"📊 Return: <code>{total_return:+.1f}%</code>\n"
+    msg += f"🏆 Win Rate: {wr:.0f}% ({state['wins']}W/{state['losses']}L)\n"
+    msg += f"📉 Max DD: {state['max_drawdown']:.1f}%\n"
+    msg += f"🔄 Scans: {state.get('scans_count', 0)}"
+
+    tg_send(msg)
+
+    # Also send chart if we have data
+    if len(PNL_HISTORY) >= 2:
+        tg_send_chart()
+
+
+def handle_status_command():
+    """Handle /status command: brief status."""
+    state = BOT_STATE
+    if not state:
+        tg_send("Bot not initialized yet.")
+        return
+    exposure = sum(p["cost"] for p in state.get("positions", []))
+    total_value = state["capital"] + exposure
+    ret = (total_value - state["initial_capital"]) / state["initial_capital"] * 100
+
+    msg = (f"🤖 <b>Status</b>\n"
+           f"Capital: ${total_value:.2f} ({ret:+.1f}%)\n"
+           f"Positions: {len(state.get('positions', []))}\n"
+           f"W/L: {state['wins']}/{state['losses']}\n"
+           f"Scans: {state.get('scans_count', 0)}")
+    tg_send(msg)
+
+
+def telegram_poller():
+    """Poll Telegram for commands like /pnl, /status, /positions."""
+    global TG_LAST_UPDATE
+    t = CONFIG["telegram_token"]
+    if not t:
+        return
+
+    log.info("Telegram command handler started")
+
+    while True:
+        try:
+            resp = requests.get(
+                f"https://api.telegram.org/bot{t}/getUpdates",
+                params={"offset": TG_LAST_UPDATE + 1, "timeout": 5},
+                timeout=10,
+            )
+            updates = resp.json().get("result", [])
+
+            for upd in updates:
+                TG_LAST_UPDATE = upd["update_id"]
+                msg = upd.get("message", {})
+                text = msg.get("text", "").strip().lower()
+                chat_id = str(msg.get("chat", {}).get("id", ""))
+
+                # Only respond to our configured chat
+                if chat_id != CONFIG["telegram_chat"]:
+                    continue
+
+                if text == "/pnl":
+                    handle_pnl_command()
+                elif text == "/status":
+                    handle_status_command()
+                elif text == "/positions":
+                    handle_pnl_command()  # Same as /pnl
+                elif text == "/help" or text == "/start":
+                    tg_send(
+                        "🤖 <b>Polymarket Autotrader</b>\n\n"
+                        "Commandes disponibles:\n"
+                        "/pnl — PnL live mark-to-market\n"
+                        "/status — Status rapide\n"
+                        "/positions — Positions ouvertes\n"
+                        "/help — Cette aide"
+                    )
+
+        except Exception as e:
+            log.debug(f"Telegram poll error: {e}")
+
+        time.sleep(3)
+
+
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -823,7 +1001,12 @@ if __name__ == "__main__":
     bot_thread = threading.Thread(target=bot_loop, daemon=True)
     bot_thread.start()
 
+    # Start Telegram command handler
+    tg_thread = threading.Thread(target=telegram_poller, daemon=True)
+    tg_thread.start()
+
     # Start web server
     port = int(os.getenv("PORT", "5001"))
-    log.info(f"🌐 Dashboard: http://localhost:{port}")
+    log.info(f"Dashboard: http://localhost:{port}")
     app.run(host="0.0.0.0", port=port, debug=False)
+
