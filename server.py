@@ -43,9 +43,10 @@ CONFIG = {
     "starting_capital": float(os.getenv("STARTING_CAPITAL", "100")),
     "scan_interval": int(os.getenv("SCAN_INTERVAL", "300")),
     "min_edge_pct": float(os.getenv("MIN_EDGE", "2.0")),      # 2% edge min
-    "kelly_fraction": float(os.getenv("KELLY_FRAC", "0.20")), # 20% Kelly
-    "max_position_pct": 0.15,                                 # Max $15 per trade (on $100)
-    "max_exposure_pct": 0.80,                                 # Keep 20% cash minimum
+    "kelly_fraction": 1.0,                                    # Full Kelly / Direct Sizing
+    "max_position_pct": 1.0,                                  # ALL-IN ALLOWED: Max 100% capital per trade
+    "max_exposure_pct": 1.0,                                  # 100% exposure (0% cash kept)
+    "min_profit_pct": 25.0,                                   # EXPECTED REWARD: Must pay at least +25% ROI to risk the capital
     "polymarket_fee_pct": 2.0,                                # 2% simulated orderbook spread/fee
     "risk_free_rate": 0.045,
     "min_dte": 1,
@@ -53,7 +54,7 @@ CONFIG = {
     "min_liquidity": 3000,
     "min_volume": 500,
     "min_win_prob": 0.40,         # STRICT RULE: No lottery tickets (<40% chance)
-    "max_drawdown_pct": 25,
+    "max_drawdown_pct": 50,       # Relaxed drawdown limit since we go all-in
     "take_profit_pct": 35.0,      # RECORRELATION: Sell if +35% unrealized profit
     "stop_loss_pct": -40.0,       # CUT LOSERS: Sell if -40% to save remaining capital
     "telegram_token": os.getenv("TELEGRAM_TOKEN", ""),
@@ -417,6 +418,10 @@ def analyze(market, spot, iv_pts, capital, exposure):
     payout = (1.0 - entry) * (1 - fee)
     cost = entry
     if cost <= 0 or payout <= 0:
+        return None
+
+    profit_pct = (payout / cost) * 100
+    if profit_pct < CONFIG["min_profit_pct"]:
         return None
 
     b = payout / cost
