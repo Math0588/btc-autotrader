@@ -53,9 +53,9 @@ CONFIG = {
     "starting_capital": float(os.getenv("STARTING_CAPITAL", "100")),
     "scan_interval": int(os.getenv("SCAN_INTERVAL", "900")),  # 15 min
     "min_edge_pct": float(os.getenv("MIN_EDGE", "3.0")),
-    "kelly_fraction": float(os.getenv("KELLY_FRAC", "0.20")),  # Conservative 20% Kelly
-    "max_position_pct": 0.15,       # Max 15% of capital per trade
-    "max_exposure_pct": 0.80,       # Max 80% of capital deployed
+    "kelly_fraction": float(os.getenv("KELLY_FRAC", "0.40")),  # Increased Kelly to 40% (More aggressive compounding)
+    "max_position_pct": 0.25,       # Allowed up to 25% of capital per trade
+    "max_exposure_pct": 1.00,       # 100% capital efficiency (0% cash drag)
     "polymarket_fee_pct": 2.0,
     "risk_free_rate": 0.045,
     "btc_drift_real": 0.10,
@@ -779,6 +779,20 @@ def run_scan(state):
     opportunities.sort(key=lambda o: o["adjusted_edge"], reverse=True)
 
     log.info(f"Found {len(opportunities)} tradeable opportunities")
+    
+    # 6.5 Send daily summary of opportunities to Telegram
+    # Only send summary once per day (checking state to see if we already sent it)
+    now_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    last_summary_date = state.get("last_summary_date", "")
+    
+    if opportunities and now_date != last_summary_date:
+        summary_msg = f"🔍 <b>Market Scanner Update</b> ({len(opportunities)} opps found)\n\n"
+        for i, opp in enumerate(opportunities[:5]): # show top 5
+            summary_msg += (f"{i+1}. <b>{opp['trade_desc']}</b>\n"
+                            f"   ▪️ Edge: {opp['edge']:.1f}% | Win: {opp['win_probability']:.0f}%\n")
+        
+        send_telegram(summary_msg)
+        state["last_summary_date"] = now_date
 
     # 7. Execute top opportunities (avoid overconcentration)
     already_traded_barriers = {p["barrier_price"] for p in state["positions"]}
