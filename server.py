@@ -41,19 +41,21 @@ log = logging.getLogger("autotrader")
 
 CONFIG = {
     "starting_capital": float(os.getenv("STARTING_CAPITAL", "100")),
-    "scan_interval": int(os.getenv("SCAN_INTERVAL", "300")),  # 5 min — aggressive
-    "min_edge_pct": float(os.getenv("MIN_EDGE", "2.5")),      # Lower threshold = more trades
-    "kelly_fraction": float(os.getenv("KELLY_FRAC", "0.15")), # Conservative
-    "max_position_pct": 0.12,
-    "max_exposure_pct": 0.70,
-    "polymarket_fee_pct": 2.0,
+    "scan_interval": int(os.getenv("SCAN_INTERVAL", "300")),
+    "min_edge_pct": float(os.getenv("MIN_EDGE", "2.0")),      # 2% edge min
+    "kelly_fraction": float(os.getenv("KELLY_FRAC", "0.20")), # 20% Kelly
+    "max_position_pct": 0.15,                                 # Max $15 per trade (on $100)
+    "max_exposure_pct": 0.80,                                 # Keep 20% cash minimum
+    "polymarket_fee_pct": 2.0,                                # 2% simulated orderbook spread/fee
     "risk_free_rate": 0.045,
     "min_dte": 1,
-    "max_dte": 30,
+    "max_dte": 45,
     "min_liquidity": 3000,
     "min_volume": 500,
-    "min_win_prob": 0.20,
+    "min_win_prob": 0.40,         # STRICT RULE: No lottery tickets (<40% chance)
     "max_drawdown_pct": 25,
+    "take_profit_pct": 35.0,      # RECORRELATION: Sell if +35% unrealized profit
+    "stop_loss_pct": -40.0,       # CUT LOSERS: Sell if -40% to save remaining capital
     "telegram_token": os.getenv("TELEGRAM_TOKEN", ""),
     "telegram_chat": os.getenv("TELEGRAM_CHAT", ""),
 }
@@ -80,6 +82,8 @@ def default_state():
         "total_trades": 0,
         "wins": 0,
         "losses": 0,
+        "early_tp": 0,  # Count of Take Profits
+        "early_sl": 0,  # Count of Stop Losses
         "peak_capital": CONFIG["starting_capital"],
         "max_drawdown": 0.0,
         "last_scan": None,
@@ -269,26 +273,8 @@ def fetch_markets():
         except Exception:
             continue
 
-    # Also scan ETH markets
-    for delta in range(-1, 14):
-        dt = now + timedelta(days=delta)
-        for token in ["ethereum-above", "solana-above"]:
-            slug = f"{token}-on-{MONTH_NAMES[dt.month]}-{dt.day}"
-            try:
-                events = pm_get(f"{POLYMARKET_GAMMA_API}/events", params={"slug": slug})
-                if events and isinstance(events, list) and len(events) > 0:
-                    for sm in events[0].get("markets", []):
-                        if sm.get("closed", False):
-                            continue
-                        p = parse_market(sm, token_type="ETH" if "ethereum" in token else "SOL")
-                        if p and p["cid"] not in seen:
-                            seen.add(p["cid"])
-                            markets.append(p)
-            except Exception:
-                continue
-
     markets.sort(key=lambda m: (m["expiry_dt"], m["barrier"]))
-    log.info(f"Found {len(markets)} barrier markets")
+    log.info(f"Found {len(markets)} BTC barrier markets")
     return markets
 
 
@@ -296,7 +282,7 @@ def parse_market(data, token_type="BTC"):
     import re
     title = data.get("question", "") or data.get("title", "") or ""
     tl = title.lower()
-    if not any(k in tl for k in ["bitcoin","btc","ethereum","eth","solana","sol"]):
+    if not any(k in tl for k in ["bitcoin","btc"]):
         return None
     if not any(k in tl for k in ["above","below","hit","reach","price"]):
         return None
@@ -403,10 +389,6 @@ def analyze(market, spot, iv_pts, capital, exposure):
     if market["liq"] < CONFIG["min_liquidity"]:
         return None
 
-    # Only analyze BTC for now (we have Deribit IV for BTC only)
-    if market["token"] != "BTC":
-        return None
-
     moneyness = barrier / spot
     iv = interp_iv(iv_pts, moneyness, dte)
     if not iv or iv <= 0:
@@ -422,11 +404,12 @@ def analyze(market, spot, iv_pts, capital, exposure):
 
     if edge > 0:
         direction, entry, win_p = "BUY_YES", market["yes"], prob
-        desc = f"{market['token']} AU-DESSUS ${barrier:,.0f}"
+        desc = f"BTC AU-DESSUS ${barrier:,.0f}"
     else:
         direction, entry, win_p = "BUY_NO", market["no"], 1-prob
-        desc = f"{market['token']} SOUS ${barrier:,.0f}"
+        desc = f"BTC SOUS ${barrier:,.0f}"
 
+    # STRICT QUALIFIER: Avoid obvious lottery tickets reducing odds of total ruin
     if win_p < CONFIG["min_win_prob"]:
         return None
 
@@ -450,6 +433,7 @@ def analyze(market, spot, iv_pts, capital, exposure):
     liq_factor = min(market["liq"] / 15000, 1.0)
     kelly *= liq_factor
 
+    # Fixed account scaling logic
     max_pos = capital * CONFIG["max_position_pct"]
     remaining = capital * CONFIG["max_exposure_pct"] - exposure
     if remaining <= 0:
@@ -477,7 +461,7 @@ def analyze(market, spot, iv_pts, capital, exposure):
     }
 
 
-# ─── Trade Execution ─────────────────────────────────────────────────────────
+# ─── Trade Execution & Settlement ────────────────────────────────────────────
 
 def execute(state, opp):
     if opp["cost"] > state["capital"]:
@@ -498,49 +482,101 @@ def execute(state, opp):
     log.info(f"TRADE: {opp['desc']} | ${opp['cost']:.2f} | Win={opp['win_prob']:.0f}% | "
              f"Edge={opp['edge']:.1f}% | +{opp['profit_pct']:.0f}% if win")
     tg_send(f"📈 <b>NEW TRADE</b>: {opp['desc']}\n"
-            f"Edge: {opp['edge']:.1f}% | Win: {opp['win_prob']:.0f}% | "
-            f"Profit: +{opp['profit_pct']:.0f}%\n"
-            f"Cost: <code>${opp['cost']:.2f}</code> | "
-            f"DTE: {opp['dte']:.0f}j")
+            f"Edge: {opp['edge']:.1f}% | Win: {opp['win_prob']:.0f}%\n"
+            f"Cost: <code>${opp['cost']:.2f}</code> |\n" 
+            f"Target TP: +{CONFIG['take_profit_pct']}% | SL: {CONFIG['stop_loss_pct']}%")
     return True
 
 
-def settle(state, spot):
+def settle(state, spot, iv_pts):
     now = datetime.now(timezone.utc)
     still_open = []
+    
     for pos in state["positions"]:
         exp = datetime.fromisoformat(pos["expiry_dt"])
-        if now < exp:
-            still_open.append(pos)
+        dte = (exp - now).total_seconds() / 86400
+
+        # --- 1. SETTLEMENT AT EXPIRY ---
+        if dte <= 0:
+            won = (spot >= pos["barrier"]) if pos["direction"] == "BUY_YES" else (spot < pos["barrier"])
+            if won:
+                fee = CONFIG["polymarket_fee_pct"] / 100
+                payout = pos["n"] * (1.0 - pos["entry"]) * (1 - fee)
+                pnl = payout
+                state["capital"] += pos["cost"] + payout
+                state["wins"] += 1
+                emoji, result = "✅", "WIN(Exp)"
+            else:
+                pnl = -pos["cost"]
+                state["losses"] += 1
+                emoji, result = "❌", "LOSS(Exp)"
+                
+            state["total_pnl"] += pnl
+            pos["pnl"] = round(pnl, 2)
+            pos["status"], pos["result"] = "closed", result
+            pos["settled_at"] = now.isoformat()
+            state["closed_trades"].append(pos)
+            
+            log.info(f"{emoji} {result}: {pos['desc']} | PnL: ${pos['pnl']:+.2f}")
+            tg_send(f"{emoji} <b>{result}</b>: {pos['desc']}\nPnL: <code>${pos['pnl']:+.2f}</code>")
             continue
-        won = (spot >= pos["barrier"]) if pos["direction"] == "BUY_YES" else (spot < pos["barrier"])
-        if won:
-            fee = CONFIG["polymarket_fee_pct"] / 100
-            payout = pos["n"] * (1.0 - pos["entry"]) * (1 - fee)
-            state["capital"] += pos["cost"] + payout
-            state["wins"] += 1
-            state["total_pnl"] += payout
-            pos["pnl"] = round(payout, 2)
-            emoji, result = "✅", "WIN"
-        else:
-            state["losses"] += 1
-            state["total_pnl"] -= pos["cost"]
-            pos["pnl"] = -pos["cost"]
-            emoji, result = "❌", "LOSS"
 
-        if state["capital"] > state["peak_capital"]:
-            state["peak_capital"] = state["capital"]
-        state["max_drawdown"] = max(state["max_drawdown"],
-            (1 - state["capital"]/state["peak_capital"])*100)
+        # --- 2. EARLY EXITS (Spread Recorrelation) ---
+        # Get MTM fair value
+        moneyness = pos["barrier"] / spot
+        iv = interp_iv(iv_pts, moneyness, max(0.1, dte)) if iv_pts else None
+        sigma = (iv / 100.0) if (iv and iv > 0) else 0.55
 
-        pos["status"], pos["result"] = "closed", result
-        pos["settled_at"] = now.isoformat()
-        state["closed_trades"].append(pos)
+        model_prob_above = bs_prob(spot, pos["barrier"], max(0.1, dte), sigma, CONFIG["risk_free_rate"], "above")
+        fair_price_per_contract = model_prob_above if pos["direction"] == "BUY_YES" else (1 - model_prob_above)
+        
+        # Apply Polymarket exit spread/fee to sell early
+        sell_value = (pos["n"] * fair_price_per_contract) * (1 - CONFIG["polymarket_fee_pct"] / 100)
+        unrealized_pnl_pct = (sell_value / pos["cost"]) * 100 - 100
 
-        log.info(f"{emoji} {result}: {pos['desc']} | PnL: ${pos['pnl']:+.2f} | Capital: ${state['capital']:.2f}")
-        tg_send(f"{emoji} <b>{result}</b>: {pos['desc']}\n"
-                f"PnL: <code>${pos['pnl']:+.2f}</code> | "
-                f"Capital: <code>${state['capital']:.2f}</code>")
+        if unrealized_pnl_pct >= CONFIG["take_profit_pct"]:
+            # TAKE PROFIT! The market recorrelated to our model.
+            pnl = sell_value - pos["cost"]
+            state["capital"] += sell_value
+            state["total_pnl"] += pnl
+            state.setdefault("early_tp", 0)
+            state["early_tp"] += 1
+            
+            pos["pnl"] = round(pnl, 2)
+            pos["status"], pos["result"] = "closed", "TP(Early)"
+            pos["settled_at"] = now.isoformat()
+            state["closed_trades"].append(pos)
+            
+            log.info(f"🎯 TAKE PROFIT: {pos['desc']} | PnL: ${pos['pnl']:+.2f} ({unrealized_pnl_pct:+.1f}%)")
+            tg_send(f"🎯 <b>TAKE PROFIT</b>: {pos['desc']}\n"
+                    f"Recorrelation hit! PnL: <code>${pos['pnl']:+.2f} ({unrealized_pnl_pct:+.1f}%)</code>")
+            continue
+
+        if unrealized_pnl_pct <= CONFIG["stop_loss_pct"]:
+            # STOP LOSS! Cut losses instead of losing 100% at expiry.
+            pnl = sell_value - pos["cost"]
+            state["capital"] += sell_value
+            state["total_pnl"] += pnl
+            state.setdefault("early_sl", 0)
+            state["early_sl"] += 1
+            
+            pos["pnl"] = round(pnl, 2)
+            pos["status"], pos["result"] = "closed", "SL(Early)"
+            pos["settled_at"] = now.isoformat()
+            state["closed_trades"].append(pos)
+
+            log.info(f"✂️ STOP LOSS: {pos['desc']} | PnL: ${pos['pnl']:+.2f} ({unrealized_pnl_pct:+.1f}%)")
+            tg_send(f"✂️ <b>STOP LOSS</b>: {pos['desc']}\n"
+                    f"Cut early! PnL: <code>${pos['pnl']:+.2f} ({unrealized_pnl_pct:+.1f}%)</code>")
+            continue
+            
+        # Position remains open
+        still_open.append(pos)
+        
+    # Drawdown tracking updates
+    if state["capital"] > state["peak_capital"]:
+        state["peak_capital"] = state["capital"]
+    state["max_drawdown"] = max(state["max_drawdown"], (1 - state["capital"] / state["peak_capital"]) * 100)
 
     state["positions"] = still_open
 
@@ -556,7 +592,8 @@ def run_scan(state):
     if not spot:
         return
 
-    settle(state, spot)
+    # Settle Expiries + Execute TP/SL Recorrelation checks
+    settle(state, spot, iv_pts)
 
     markets = fetch_markets()
     if not markets:

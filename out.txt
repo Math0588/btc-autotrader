@@ -1,0 +1,25 @@
+Fetching 730 days of BTC price history...
+
+🚀 Recorrelation Strategy Bot Started
+Starting capital: $100.00
+
+============================================================
+ 🏆 ADVANCED RECORRELATION RESULTS
+============================================================
+ Capital:      $100.0 ➡️  $211.04 (+111.0%)
+ Total Trades: 613
+ Win Rate:    77.5%
+ Breakdowns:
+   ✓ Expiry Wins:  355
+   ✓ Take Profit (Recorrelated): 120
+   ✕ Expiry Loss:  7
+   ✕ Stop Loss (Cut early): 131
+ Max Drawdown: 23.3%
+============================================================
+
+📜 5 Derniers trades:
+   2026-02-19 | 🟩  TP(Early) | BTC < $72,000   | PnL: $+0.88
+   2026-02-21 | 🟩  TP(Early) | BTC < $76,000   | PnL: $+0.76
+   2026-02-23 | 🟩   WIN(Exp) | BTC < $78,000   | PnL: $+1.29
+   2026-02-23 | 🟩  TP(Early) | BTC < $70,000   | PnL: $+1.33
+   2026-02-23 | 🟩  TP(Early) | BTC < $72,000   | PnL: $+1.73

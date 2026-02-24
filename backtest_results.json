@@ -1,0 +1,4340 @@
+{
+  "config": {
+    "starting_capital": 100.0,
+    "min_edge_pct": 2.5,
+    "kelly_fraction": 0.15,
+    "max_position_pct": 0.12,
+    "max_exposure_pct": 0.7,
+    "polymarket_fee_pct": 2.0,
+    "risk_free_rate": 0.045,
+    "min_win_prob": 0.2,
+    "max_drawdown_reduce": 25,
+    "max_trades_per_week": 5,
+    "btc_annual_vol": 0.55,
+    "pm_bias_pct": 2.5,
+    "pm_noise_std": 3.0
+  },
+  "summary": {
+    "period_days": 364,
+    "starting_capital": 100.0,
+    "final_capital": 529.87,
+    "total_return_pct": 429.87,
+    "annualized_return_pct": 431.05,
+    "sharpe_ratio": 6.43,
+    "max_drawdown_pct": 7.16,
+    "total_trades": 256,
+    "wins": 246,
+    "losses": 10,
+    "win_rate_pct": 96.1,
+    "total_pnl": 429.8716
+  },
+  "equity_curve": [
+    {
+      "date": "2025-03-04",
+      "capital": 100.0,
+      "exposure": 0,
+      "total_value": 100.0,
+      "spot": 86125.0
+    },
+    {
+      "date": "2025-03-05",
+      "capital": 52.64,
+      "exposure": 47.36,
+      "total_value": 100.0,
+      "spot": 87311.0
+    },
+    {
+      "date": "2025-03-06",
+      "capital": 52.64,
+      "exposure": 47.36,
+      "total_value": 100.0,
+      "spot": 90604.0
+    },
+    {
+      "date": "2025-03-07",
+      "capital": 52.64,
+      "exposure": 47.36,
+      "total_value": 100.0,
+      "spot": 90001.0
+    },
+    {
+      "date": "2025-03-08",
+      "capital": 52.64,
+      "exposure": 47.36,
+      "total_value": 100.0,
+      "spot": 86773.0
+    },
+    {
+      "date": "2025-03-09",
+      "capital": 52.64,
+      "exposure": 47.36,
+      "total_value": 100.0,
+      "spot": 86143.0
+    },
+    {
+      "date": "2025-03-10",
+      "capital": 52.64,
+      "exposure": 47.36,
+      "total_value": 100.0,
+      "spot": 80751.0
+    },
+    {
+      "date": "2025-03-11",
+      "capital": 103.56,
+      "exposure": 0,
+      "total_value": 103.56,
+      "spot": 78784.0
+    },
+    {
+      "date": "2025-03-12",
+      "capital": 69.54,
+      "exposure": 34.03,
+      "total_value": 103.56,
+      "spot": 82799.0
+    },
+    {
+      "date": "2025-03-13",
+      "capital": 69.54,
+      "exposure": 34.03,
+      "total_value": 103.56,
+      "spot": 83884.0
+    },
+    {
+      "date": "2025-03-14",
+      "capital": 69.54,
+      "exposure": 34.03,
+      "total_value": 103.56,
+      "spot": 81099.0
+    },
+    {
+      "date": "2025-03-15",
+      "capital": 69.54,
+      "exposure": 34.03,
+      "total_value": 103.56,
+      "spot": 83972.0
+    },
+    {
+      "date": "2025-03-16",
+      "capital": 69.54,
+      "exposure": 34.03,
+      "total_value": 103.56,
+      "spot": 84392.0
+    },
+    {
+      "date": "2025-03-17",
+      "capital": 69.54,
+      "exposure": 34.03,
+      "total_value": 103.56,
+      "spot": 82611.0
+    },
+    {
+      "date": "2025-03-18",
+      "capital": 105.46,
+      "exposure": 0,
+      "total_value": 105.46,
+      "spot": 84075.0
+    },
+    {
+      "date": "2025-03-19",
+      "capital": 65.73,
+      "exposure": 39.73,
+      "total_value": 105.46,
+      "spot": 82780.0
+    },
+    {
+      "date": "2025-03-20",
+      "capital": 65.73,
+      "exposure": 39.73,
+      "total_value": 105.46,
+      "spot": 86815.0
+    },
+    {
+      "date": "2025-03-21",
+      "capital": 65.73,
+      "exposure": 39.73,
+      "total_value": 105.46,
+      "spot": 84271.0
+    },
+    {
+      "date": "2025-03-22",
+      "capital": 65.73,
+      "exposure": 39.73,
+      "total_value": 105.46,
+      "spot": 84010.0
+    },
+    {
+      "date": "2025-03-23",
+      "capital": 65.73,
+      "exposure": 39.73,
+      "total_value": 105.46,
+      "spot": 83793.0
+    },
+    {
+      "date": "2025-03-24",
+      "capital": 65.73,
+      "exposure": 39.73,
+      "total_value": 105.46,
+      "spot": 85788.0
+    },
+    {
+      "date": "2025-03-25",
+      "capital": 107.64,
+      "exposure": 0,
+      "total_value": 107.64,
+      "spot": 87328.0
+    },
+    {
+      "date": "2025-03-26",
+      "capital": 55.38,
+      "exposure": 52.26,
+      "total_value": 107.64,
+      "spot": 87521.0
+    },
+    {
+      "date": "2025-03-27",
+      "capital": 55.38,
+      "exposure": 52.26,
+      "total_value": 107.64,
+      "spot": 86961.0
+    },
+    {
+      "date": "2025-03-28",
+      "capital": 55.38,
+      "exposure": 52.26,
+      "total_value": 107.64,
+      "spot": 87227.0
+    },
+    {
+      "date": "2025-03-29",
+      "capital": 55.38,
+      "exposure": 52.26,
+      "total_value": 107.64,
+      "spot": 84359.0
+    },
+    {
+      "date": "2025-03-30",
+      "capital": 55.38,
+      "exposure": 52.26,
+      "total_value": 107.64,
+      "spot": 82679.0
+    },
+    {
+      "date": "2025-03-31",
+      "capital": 55.38,
+      "exposure": 52.26,
+      "total_value": 107.64,
+      "spot": 82356.0
+    },
+    {
+      "date": "2025-04-01",
+      "capital": 111.3,
+      "exposure": 0,
+      "total_value": 111.3,
+      "spot": 82514.0
+    },
+    {
+      "date": "2025-04-02",
+      "capital": 59.33,
+      "exposure": 51.97,
+      "total_value": 111.3,
+      "spot": 85238.0
+    },
+    {
+      "date": "2025-04-03",
+      "capital": 59.33,
+      "exposure": 51.97,
+      "total_value": 111.3,
+      "spot": 82526.0
+    },
+    {
+      "date": "2025-04-04",
+      "capital": 59.33,
+      "exposure": 51.97,
+      "total_value": 111.3,
+      "spot": 83164.0
+    },
+    {
+      "date": "2025-04-05",
+      "capital": 59.33,
+      "exposure": 51.97,
+      "total_value": 111.3,
+      "spot": 83852.0
+    },
+    {
+      "date": "2025-04-06",
+      "capital": 59.33,
+      "exposure": 51.97,
+      "total_value": 111.3,
+      "spot": 83596.0
+    },
+    {
+      "date": "2025-04-07",
+      "capital": 59.33,
+      "exposure": 51.97,
+      "total_value": 111.3,
+      "spot": 78211.0
+    },
+    {
+      "date": "2025-04-08",
+      "capital": 116.23,
+      "exposure": 0,
+      "total_value": 116.23,
+      "spot": 79179.0
+    },
+    {
+      "date": "2025-04-09",
+      "capital": 75.12,
+      "exposure": 41.11,
+      "total_value": 116.23,
+      "spot": 76329.0
+    },
+    {
+      "date": "2025-04-10",
+      "capital": 75.12,
+      "exposure": 41.11,
+      "total_value": 116.23,
+      "spot": 82622.0
+    },
+    {
+      "date": "2025-04-11",
+      "capital": 75.12,
+      "exposure": 41.11,
+      "total_value": 116.23,
+      "spot": 79596.0
+    },
+    {
+      "date": "2025-04-12",
+      "capital": 75.12,
+      "exposure": 41.11,
+      "total_value": 116.23,
+      "spot": 83439.0
+    },
+    {
+      "date": "2025-04-13",
+      "capital": 75.12,
+      "exposure": 41.11,
+      "total_value": 116.23,
+      "spot": 85305.0
+    },
+    {
+      "date": "2025-04-14",
+      "capital": 75.12,
+      "exposure": 41.11,
+      "total_value": 116.23,
+      "spot": 83601.0
+    },
+    {
+      "date": "2025-04-15",
+      "capital": 120.04,
+      "exposure": 0,
+      "total_value": 120.04,
+      "spot": 84523.0
+    },
+    {
+      "date": "2025-04-16",
+      "capital": 61.61,
+      "exposure": 58.43,
+      "total_value": 120.04,
+      "spot": 83656.0
+    },
+    {
+      "date": "2025-04-17",
+      "capital": 61.61,
+      "exposure": 58.43,
+      "total_value": 120.04,
+      "spot": 84106.0
+    },
+    {
+      "date": "2025-04-18",
+      "capital": 61.61,
+      "exposure": 58.43,
+      "total_value": 120.04,
+      "spot": 84931.0
+    },
+    {
+      "date": "2025-04-19",
+      "capital": 61.61,
+      "exposure": 58.43,
+      "total_value": 120.04,
+      "spot": 84434.0
+    },
+    {
+      "date": "2025-04-20",
+      "capital": 61.61,
+      "exposure": 58.43,
+      "total_value": 120.04,
+      "spot": 85127.0
+    },
+    {
+      "date": "2025-04-21",
+      "capital": 61.61,
+      "exposure": 58.43,
+      "total_value": 120.04,
+      "spot": 85073.0
+    },
+    {
+      "date": "2025-04-22",
+      "capital": 125.5,
+      "exposure": 0,
+      "total_value": 125.5,
+      "spot": 87452.0
+    },
+    {
+      "date": "2025-04-23",
+      "capital": 75.32,
+      "exposure": 50.18,
+      "total_value": 125.5,
+      "spot": 93576.0
+    },
+    {
+      "date": "2025-04-24",
+      "capital": 75.32,
+      "exposure": 50.18,
+      "total_value": 125.5,
+      "spot": 93605.0
+    },
+    {
+      "date": "2025-04-25",
+      "capital": 75.32,
+      "exposure": 50.18,
+      "total_value": 125.5,
+      "spot": 93873.0
+    },
+    {
+      "date": "2025-04-26",
+      "capital": 75.32,
+      "exposure": 50.18,
+      "total_value": 125.5,
+      "spot": 94773.0
+    },
+    {
+      "date": "2025-04-27",
+      "capital": 75.32,
+      "exposure": 50.18,
+      "total_value": 125.5,
+      "spot": 94644.0
+    },
+    {
+      "date": "2025-04-28",
+      "capital": 75.32,
+      "exposure": 50.18,
+      "total_value": 125.5,
+      "spot": 93809.0
+    },
+    {
+      "date": "2025-04-29",
+      "capital": 126.22,
+      "exposure": 0,
+      "total_value": 126.22,
+      "spot": 95031.0
+    },
+    {
+      "date": "2025-04-30",
+      "capital": 53.69,
+      "exposure": 72.53,
+      "total_value": 126.22,
+      "spot": 94256.0
+    },
+    {
+      "date": "2025-05-01",
+      "capital": 53.69,
+      "exposure": 72.53,
+      "total_value": 126.22,
+      "spot": 94236.0
+    },
+    {
+      "date": "2025-05-02",
+      "capital": 53.69,
+      "exposure": 72.53,
+      "total_value": 126.22,
+      "spot": 96427.0
+    },
+    {
+      "date": "2025-05-03",
+      "capital": 53.69,
+      "exposure": 72.53,
+      "total_value": 126.22,
+      "spot": 96856.0
+    },
+    {
+      "date": "2025-05-04",
+      "capital": 53.69,
+      "exposure": 72.53,
+      "total_value": 126.22,
+      "spot": 95923.0
+    },
+    {
+      "date": "2025-05-05",
+      "capital": 53.69,
+      "exposure": 72.53,
+      "total_value": 126.22,
+      "spot": 94327.0
+    },
+    {
+      "date": "2025-05-06",
+      "capital": 130.6,
+      "exposure": 0,
+      "total_value": 130.6,
+      "spot": 94759.0
+    },
+    {
+      "date": "2025-05-07",
+      "capital": 82.12,
+      "exposure": 48.48,
+      "total_value": 130.6,
+      "spot": 96855.0
+    },
+    {
+      "date": "2025-05-08",
+      "capital": 82.12,
+      "exposure": 48.48,
+      "total_value": 130.6,
+      "spot": 97026.0
+    },
+    {
+      "date": "2025-05-09",
+      "capital": 82.12,
+      "exposure": 48.48,
+      "total_value": 130.6,
+      "spot": 103076.0
+    },
+    {
+      "date": "2025-05-10",
+      "capital": 82.12,
+      "exposure": 48.48,
+      "total_value": 130.6,
+      "spot": 102963.0
+    },
+    {
+      "date": "2025-05-11",
+      "capital": 82.12,
+      "exposure": 48.48,
+      "total_value": 130.6,
+      "spot": 104631.0
+    },
+    {
+      "date": "2025-05-12",
+      "capital": 82.12,
+      "exposure": 48.48,
+      "total_value": 130.6,
+      "spot": 103994.0
+    },
+    {
+      "date": "2025-05-13",
+      "capital": 130.04,
+      "exposure": 0,
+      "total_value": 130.04,
+      "spot": 102877.0
+    },
+    {
+      "date": "2025-05-14",
+      "capital": 62.89,
+      "exposure": 67.15,
+      "total_value": 130.04,
+      "spot": 104184.0
+    },
+    {
+      "date": "2025-05-15",
+      "capital": 62.89,
+      "exposure": 67.15,
+      "total_value": 130.04,
+      "spot": 103594.0
+    },
+    {
+      "date": "2025-05-16",
+      "capital": 62.89,
+      "exposure": 67.15,
+      "total_value": 130.04,
+      "spot": 103709.0
+    },
+    {
+      "date": "2025-05-17",
+      "capital": 62.89,
+      "exposure": 67.15,
+      "total_value": 130.04,
+      "spot": 103556.0
+    },
+    {
+      "date": "2025-05-18",
+      "capital": 62.89,
+      "exposure": 67.15,
+      "total_value": 130.04,
+      "spot": 103212.0
+    },
+    {
+      "date": "2025-05-19",
+      "capital": 62.89,
+      "exposure": 67.15,
+      "total_value": 130.04,
+      "spot": 106031.0
+    },
+    {
+      "date": "2025-05-20",
+      "capital": 134.79,
+      "exposure": 0,
+      "total_value": 134.79,
+      "spot": 105629.0
+    },
+    {
+      "date": "2025-05-21",
+      "capital": 57.98,
+      "exposure": 76.81,
+      "total_value": 134.79,
+      "spot": 106787.0
+    },
+    {
+      "date": "2025-05-22",
+      "capital": 57.98,
+      "exposure": 76.81,
+      "total_value": 134.79,
+      "spot": 109666.0
+    },
+    {
+      "date": "2025-05-23",
+      "capital": 57.98,
+      "exposure": 76.81,
+      "total_value": 134.79,
+      "spot": 111560.0
+    },
+    {
+      "date": "2025-05-24",
+      "capital": 57.98,
+      "exposure": 76.81,
+      "total_value": 134.79,
+      "spot": 107217.0
+    },
+    {
+      "date": "2025-05-25",
+      "capital": 57.98,
+      "exposure": 76.81,
+      "total_value": 134.79,
+      "spot": 107831.0
+    },
+    {
+      "date": "2025-05-26",
+      "capital": 57.98,
+      "exposure": 76.81,
+      "total_value": 134.79,
+      "spot": 108862.0
+    },
+    {
+      "date": "2025-05-27",
+      "capital": 138.9,
+      "exposure": 0,
+      "total_value": 138.9,
+      "spot": 109378.0
+    },
+    {
+      "date": "2025-05-28",
+      "capital": 60.39,
+      "exposure": 78.5,
+      "total_value": 138.9,
+      "spot": 109068.0
+    },
+    {
+      "date": "2025-05-29",
+      "capital": 60.39,
+      "exposure": 78.5,
+      "total_value": 138.9,
+      "spot": 107838.0
+    },
+    {
+      "date": "2025-05-30",
+      "capital": 60.39,
+      "exposure": 78.5,
+      "total_value": 138.9,
+      "spot": 105745.0
+    },
+    {
+      "date": "2025-05-31",
+      "capital": 60.39,
+      "exposure": 78.5,
+      "total_value": 138.9,
+      "spot": 104011.0
+    },
+    {
+      "date": "2025-06-01",
+      "capital": 60.39,
+      "exposure": 78.5,
+      "total_value": 138.9,
+      "spot": 104688.0
+    },
+    {
+      "date": "2025-06-02",
+      "capital": 60.39,
+      "exposure": 78.5,
+      "total_value": 138.9,
+      "spot": 105710.0
+    },
+    {
+      "date": "2025-06-03",
+      "capital": 143.3,
+      "exposure": 0,
+      "total_value": 143.3,
+      "spot": 105885.0
+    },
+    {
+      "date": "2025-06-04",
+      "capital": 79.13,
+      "exposure": 64.18,
+      "total_value": 143.3,
+      "spot": 105434.0
+    },
+    {
+      "date": "2025-06-05",
+      "capital": 79.13,
+      "exposure": 64.18,
+      "total_value": 143.3,
+      "spot": 104813.0
+    },
+    {
+      "date": "2025-06-06",
+      "capital": 79.13,
+      "exposure": 64.18,
+      "total_value": 143.3,
+      "spot": 101651.0
+    },
+    {
+      "date": "2025-06-07",
+      "capital": 79.13,
+      "exposure": 64.18,
+      "total_value": 143.3,
+      "spot": 104410.0
+    },
+    {
+      "date": "2025-06-08",
+      "capital": 79.13,
+      "exposure": 64.18,
+      "total_value": 143.3,
+      "spot": 105681.0
+    },
+    {
+      "date": "2025-06-09",
+      "capital": 79.13,
+      "exposure": 64.18,
+      "total_value": 143.3,
+      "spot": 105692.0
+    },
+    {
+      "date": "2025-06-10",
+      "capital": 144.03,
+      "exposure": 0,
+      "total_value": 144.03,
+      "spot": 110262.0
+    },
+    {
+      "date": "2025-06-11",
+      "capital": 59.39,
+      "exposure": 84.64,
+      "total_value": 144.03,
+      "spot": 110213.0
+    },
+    {
+      "date": "2025-06-12",
+      "capital": 59.39,
+      "exposure": 84.64,
+      "total_value": 144.03,
+      "spot": 108680.0
+    },
+    {
+      "date": "2025-06-13",
+      "capital": 59.39,
+      "exposure": 84.64,
+      "total_value": 144.03,
+      "spot": 105979.0
+    },
+    {
+      "date": "2025-06-14",
+      "capital": 59.39,
+      "exposure": 84.64,
+      "total_value": 144.03,
+      "spot": 106046.0
+    },
+    {
+      "date": "2025-06-15",
+      "capital": 59.39,
+      "exposure": 84.64,
+      "total_value": 144.03,
+      "spot": 105483.0
+    },
+    {
+      "date": "2025-06-16",
+      "capital": 59.39,
+      "exposure": 84.64,
+      "total_value": 144.03,
+      "spot": 105554.0
+    },
+    {
+      "date": "2025-06-17",
+      "capital": 149.28,
+      "exposure": 0,
+      "total_value": 149.28,
+      "spot": 106951.0
+    },
+    {
+      "date": "2025-06-18",
+      "capital": 74.49,
+      "exposure": 74.8,
+      "total_value": 149.28,
+      "spot": 104683.0
+    },
+    {
+      "date": "2025-06-19",
+      "capital": 74.49,
+      "exposure": 74.8,
+      "total_value": 149.28,
+      "spot": 104723.0
+    },
+    {
+      "date": "2025-06-20",
+      "capital": 74.49,
+      "exposure": 74.8,
+      "total_value": 149.28,
+      "spot": 104691.0
+    },
+    {
+      "date": "2025-06-21",
+      "capital": 74.49,
+      "exposure": 74.8,
+      "total_value": 149.28,
+      "spot": 103290.0
+    },
+    {
+      "date": "2025-06-22",
+      "capital": 74.49,
+      "exposure": 74.8,
+      "total_value": 149.28,
+      "spot": 101533.0
+    },
+    {
+      "date": "2025-06-23",
+      "capital": 74.49,
+      "exposure": 74.8,
+      "total_value": 149.28,
+      "spot": 100853.0
+    },
+    {
+      "date": "2025-06-24",
+      "capital": 154.38,
+      "exposure": 0,
+      "total_value": 154.38,
+      "spot": 105512.0
+    },
+    {
+      "date": "2025-06-25",
+      "capital": 63.99,
+      "exposure": 90.39,
+      "total_value": 154.38,
+      "spot": 105976.0
+    },
+    {
+      "date": "2025-06-26",
+      "capital": 63.99,
+      "exposure": 90.39,
+      "total_value": 154.38,
+      "spot": 107239.0
+    },
+    {
+      "date": "2025-06-27",
+      "capital": 63.99,
+      "exposure": 90.39,
+      "total_value": 154.38,
+      "spot": 106984.0
+    },
+    {
+      "date": "2025-06-28",
+      "capital": 63.99,
+      "exposure": 90.39,
+      "total_value": 154.38,
+      "spot": 107079.0
+    },
+    {
+      "date": "2025-06-29",
+      "capital": 63.99,
+      "exposure": 90.39,
+      "total_value": 154.38,
+      "spot": 107332.0
+    },
+    {
+      "date": "2025-06-30",
+      "capital": 63.99,
+      "exposure": 90.39,
+      "total_value": 154.38,
+      "spot": 108397.0
+    },
+    {
+      "date": "2025-07-01",
+      "capital": 161.84,
+      "exposure": 0,
+      "total_value": 161.84,
+      "spot": 107133.0
+    },
+    {
+      "date": "2025-07-02",
+      "capital": 79.92,
+      "exposure": 81.93,
+      "total_value": 161.84,
+      "spot": 105613.0
+    },
+    {
+      "date": "2025-07-03",
+      "capital": 79.92,
+      "exposure": 81.93,
+      "total_value": 161.84,
+      "spot": 108824.0
+    },
+    {
+      "date": "2025-07-04",
+      "capital": 79.92,
+      "exposure": 81.93,
+      "total_value": 161.84,
+      "spot": 109602.0
+    },
+    {
+      "date": "2025-07-05",
+      "capital": 79.92,
+      "exposure": 81.93,
+      "total_value": 161.84,
+      "spot": 108041.0
+    },
+    {
+      "date": "2025-07-06",
+      "capital": 79.92,
+      "exposure": 81.93,
+      "total_value": 161.84,
+      "spot": 108217.0
+    },
+    {
+      "date": "2025-07-07",
+      "capital": 79.92,
+      "exposure": 81.93,
+      "total_value": 161.84,
+      "spot": 109215.0
+    },
+    {
+      "date": "2025-07-08",
+      "capital": 168.77,
+      "exposure": 0,
+      "total_value": 168.77,
+      "spot": 108301.0
+    },
+    {
+      "date": "2025-07-09",
+      "capital": 72.79,
+      "exposure": 95.98,
+      "total_value": 168.77,
+      "spot": 108953.0
+    },
+    {
+      "date": "2025-07-10",
+      "capital": 72.79,
+      "exposure": 95.98,
+      "total_value": 168.77,
+      "spot": 111328.0
+    },
+    {
+      "date": "2025-07-11",
+      "capital": 72.79,
+      "exposure": 95.98,
+      "total_value": 168.77,
+      "spot": 115880.0
+    },
+    {
+      "date": "2025-07-12",
+      "capital": 72.79,
+      "exposure": 95.98,
+      "total_value": 168.77,
+      "spot": 117571.0
+    },
+    {
+      "date": "2025-07-13",
+      "capital": 72.79,
+      "exposure": 95.98,
+      "total_value": 168.77,
+      "spot": 117419.0
+    },
+    {
+      "date": "2025-07-14",
+      "capital": 72.79,
+      "exposure": 95.98,
+      "total_value": 168.77,
+      "spot": 119118.0
+    },
+    {
+      "date": "2025-07-15",
+      "capital": 156.7,
+      "exposure": 0,
+      "total_value": 156.7,
+      "spot": 119834.0
+    },
+    {
+      "date": "2025-07-16",
+      "capital": 64.94,
+      "exposure": 91.76,
+      "total_value": 156.7,
+      "spot": 117678.0
+    },
+    {
+      "date": "2025-07-17",
+      "capital": 64.94,
+      "exposure": 91.76,
+      "total_value": 156.7,
+      "spot": 118748.0
+    },
+    {
+      "date": "2025-07-18",
+      "capital": 64.94,
+      "exposure": 91.76,
+      "total_value": 156.7,
+      "spot": 119445.0
+    },
+    {
+      "date": "2025-07-19",
+      "capital": 64.94,
+      "exposure": 91.76,
+      "total_value": 156.7,
+      "spot": 117989.0
+    },
+    {
+      "date": "2025-07-20",
+      "capital": 64.94,
+      "exposure": 91.76,
+      "total_value": 156.7,
+      "spot": 117902.0
+    },
+    {
+      "date": "2025-07-21",
+      "capital": 64.94,
+      "exposure": 91.76,
+      "total_value": 156.7,
+      "spot": 117257.0
+    },
+    {
+      "date": "2025-07-22",
+      "capital": 159.87,
+      "exposure": 0,
+      "total_value": 159.87,
+      "spot": 117482.0
+    },
+    {
+      "date": "2025-07-23",
+      "capital": 78.77,
+      "exposure": 81.11,
+      "total_value": 159.87,
+      "spot": 119956.0
+    },
+    {
+      "date": "2025-07-24",
+      "capital": 78.77,
+      "exposure": 81.11,
+      "total_value": 159.87,
+      "spot": 118629.0
+    },
+    {
+      "date": "2025-07-25",
+      "capital": 78.77,
+      "exposure": 81.11,
+      "total_value": 159.87,
+      "spot": 118354.0
+    },
+    {
+      "date": "2025-07-26",
+      "capital": 78.77,
+      "exposure": 81.11,
+      "total_value": 159.87,
+      "spot": 117541.0
+    },
+    {
+      "date": "2025-07-27",
+      "capital": 78.77,
+      "exposure": 81.11,
+      "total_value": 159.87,
+      "spot": 117960.0
+    },
+    {
+      "date": "2025-07-28",
+      "capital": 78.77,
+      "exposure": 81.11,
+      "total_value": 159.87,
+      "spot": 119419.0
+    },
+    {
+      "date": "2025-07-29",
+      "capital": 165.65,
+      "exposure": 0,
+      "total_value": 165.65,
+      "spot": 118003.0
+    },
+    {
+      "date": "2025-07-30",
+      "capital": 99.34,
+      "exposure": 66.31,
+      "total_value": 165.65,
+      "spot": 117853.0
+    },
+    {
+      "date": "2025-07-31",
+      "capital": 99.34,
+      "exposure": 66.31,
+      "total_value": 165.65,
+      "spot": 117833.0
+    },
+    {
+      "date": "2025-08-01",
+      "capital": 99.34,
+      "exposure": 66.31,
+      "total_value": 165.65,
+      "spot": 115700.0
+    },
+    {
+      "date": "2025-08-02",
+      "capital": 99.34,
+      "exposure": 66.31,
+      "total_value": 165.65,
+      "spot": 113235.0
+    },
+    {
+      "date": "2025-08-03",
+      "capital": 99.34,
+      "exposure": 66.31,
+      "total_value": 165.65,
+      "spot": 112555.0
+    },
+    {
+      "date": "2025-08-04",
+      "capital": 99.34,
+      "exposure": 66.31,
+      "total_value": 165.65,
+      "spot": 114199.0
+    },
+    {
+      "date": "2025-08-05",
+      "capital": 174.17,
+      "exposure": 0,
+      "total_value": 174.17,
+      "spot": 115139.0
+    },
+    {
+      "date": "2025-08-06",
+      "capital": 100.1,
+      "exposure": 74.07,
+      "total_value": 174.17,
+      "spot": 114128.0
+    },
+    {
+      "date": "2025-08-07",
+      "capital": 100.1,
+      "exposure": 74.07,
+      "total_value": 174.17,
+      "spot": 115022.0
+    },
+    {
+      "date": "2025-08-08",
+      "capital": 100.1,
+      "exposure": 74.07,
+      "total_value": 174.17,
+      "spot": 117463.0
+    },
+    {
+      "date": "2025-08-09",
+      "capital": 100.1,
+      "exposure": 74.07,
+      "total_value": 174.17,
+      "spot": 116688.0
+    },
+    {
+      "date": "2025-08-10",
+      "capital": 100.1,
+      "exposure": 74.07,
+      "total_value": 174.17,
+      "spot": 116510.0
+    },
+    {
+      "date": "2025-08-11",
+      "capital": 100.1,
+      "exposure": 74.07,
+      "total_value": 174.17,
+      "spot": 119267.0
+    },
+    {
+      "date": "2025-08-12",
+      "capital": 181.94,
+      "exposure": 0,
+      "total_value": 181.94,
+      "spot": 118774.0
+    },
+    {
+      "date": "2025-08-13",
+      "capital": 94.53,
+      "exposure": 87.41,
+      "total_value": 181.94,
+      "spot": 120203.0
+    },
+    {
+      "date": "2025-08-14",
+      "capital": 94.53,
+      "exposure": 87.41,
+      "total_value": 181.94,
+      "spot": 123561.0
+    },
+    {
+      "date": "2025-08-15",
+      "capital": 94.53,
+      "exposure": 87.41,
+      "total_value": 181.94,
+      "spot": 118406.0
+    },
+    {
+      "date": "2025-08-16",
+      "capital": 94.53,
+      "exposure": 87.41,
+      "total_value": 181.94,
+      "spot": 117340.0
+    },
+    {
+      "date": "2025-08-17",
+      "capital": 94.53,
+      "exposure": 87.41,
+      "total_value": 181.94,
+      "spot": 117501.0
+    },
+    {
+      "date": "2025-08-18",
+      "capital": 94.53,
+      "exposure": 87.41,
+      "total_value": 181.94,
+      "spot": 117543.0
+    },
+    {
+      "date": "2025-08-19",
+      "capital": 188.4,
+      "exposure": 0,
+      "total_value": 188.4,
+      "spot": 116256.0
+    },
+    {
+      "date": "2025-08-20",
+      "capital": 104.77,
+      "exposure": 83.62,
+      "total_value": 188.4,
+      "spot": 112778.0
+    },
+    {
+      "date": "2025-08-21",
+      "capital": 104.77,
+      "exposure": 83.62,
+      "total_value": 188.4,
+      "spot": 114252.0
+    },
+    {
+      "date": "2025-08-22",
+      "capital": 104.77,
+      "exposure": 83.62,
+      "total_value": 188.4,
+      "spot": 112414.0
+    },
+    {
+      "date": "2025-08-23",
+      "capital": 104.77,
+      "exposure": 83.62,
+      "total_value": 188.4,
+      "spot": 116834.0
+    },
+    {
+      "date": "2025-08-24",
+      "capital": 104.77,
+      "exposure": 83.62,
+      "total_value": 188.4,
+      "spot": 115360.0
+    },
+    {
+      "date": "2025-08-25",
+      "capital": 104.77,
+      "exposure": 83.62,
+      "total_value": 188.4,
+      "spot": 113400.0
+    },
+    {
+      "date": "2025-08-26",
+      "capital": 197.59,
+      "exposure": 0,
+      "total_value": 197.59,
+      "spot": 110185.0
+    },
+    {
+      "date": "2025-08-27",
+      "capital": 102.01,
+      "exposure": 95.57,
+      "total_value": 197.59,
+      "spot": 111843.0
+    },
+    {
+      "date": "2025-08-28",
+      "capital": 102.01,
+      "exposure": 95.57,
+      "total_value": 197.59,
+      "spot": 111216.0
+    },
+    {
+      "date": "2025-08-29",
+      "capital": 102.01,
+      "exposure": 95.57,
+      "total_value": 197.59,
+      "spot": 112526.0
+    },
+    {
+      "date": "2025-08-30",
+      "capital": 102.01,
+      "exposure": 95.57,
+      "total_value": 197.59,
+      "spot": 108480.0
+    },
+    {
+      "date": "2025-08-31",
+      "capital": 102.01,
+      "exposure": 95.57,
+      "total_value": 197.59,
+      "spot": 108782.0
+    },
+    {
+      "date": "2025-09-01",
+      "capital": 102.01,
+      "exposure": 95.57,
+      "total_value": 197.59,
+      "spot": 108253.0
+    },
+    {
+      "date": "2025-09-02",
+      "capital": 205.84,
+      "exposure": 0,
+      "total_value": 205.84,
+      "spot": 109163.0
+    },
+    {
+      "date": "2025-09-03",
+      "capital": 103.4,
+      "exposure": 102.44,
+      "total_value": 205.84,
+      "spot": 111190.0
+    },
+    {
+      "date": "2025-09-04",
+      "capital": 103.4,
+      "exposure": 102.44,
+      "total_value": 205.84,
+      "spot": 111712.0
+    },
+    {
+      "date": "2025-09-05",
+      "capital": 103.4,
+      "exposure": 102.44,
+      "total_value": 205.84,
+      "spot": 110725.0
+    },
+    {
+      "date": "2025-09-06",
+      "capital": 103.4,
+      "exposure": 102.44,
+      "total_value": 205.84,
+      "spot": 110662.0
+    },
+    {
+      "date": "2025-09-07",
+      "capital": 103.4,
+      "exposure": 102.44,
+      "total_value": 205.84,
+      "spot": 110209.0
+    },
+    {
+      "date": "2025-09-08",
+      "capital": 103.4,
+      "exposure": 102.44,
+      "total_value": 205.84,
+      "spot": 111132.0
+    },
+    {
+      "date": "2025-09-09",
+      "capital": 208.24,
+      "exposure": 0,
+      "total_value": 208.24,
+      "spot": 112025.0
+    },
+    {
+      "date": "2025-09-10",
+      "capital": 119.45,
+      "exposure": 88.79,
+      "total_value": 208.24,
+      "spot": 111547.0
+    },
+    {
+      "date": "2025-09-11",
+      "capital": 119.45,
+      "exposure": 88.79,
+      "total_value": 208.24,
+      "spot": 113975.0
+    },
+    {
+      "date": "2025-09-12",
+      "capital": 119.45,
+      "exposure": 88.79,
+      "total_value": 208.24,
+      "spot": 115503.0
+    },
+    {
+      "date": "2025-09-13",
+      "capital": 119.45,
+      "exposure": 88.79,
+      "total_value": 208.24,
+      "spot": 116160.0
+    },
+    {
+      "date": "2025-09-14",
+      "capital": 119.45,
+      "exposure": 88.79,
+      "total_value": 208.24,
+      "spot": 115971.0
+    },
+    {
+      "date": "2025-09-15",
+      "capital": 119.45,
+      "exposure": 88.79,
+      "total_value": 208.24,
+      "spot": 115374.0
+    },
+    {
+      "date": "2025-09-16",
+      "capital": 215.31,
+      "exposure": 0,
+      "total_value": 215.31,
+      "spot": 115397.0
+    },
+    {
+      "date": "2025-09-17",
+      "capital": 100.66,
+      "exposure": 114.65,
+      "total_value": 215.31,
+      "spot": 116763.0
+    },
+    {
+      "date": "2025-09-18",
+      "capital": 100.66,
+      "exposure": 114.65,
+      "total_value": 215.31,
+      "spot": 116456.0
+    },
+    {
+      "date": "2025-09-19",
+      "capital": 100.66,
+      "exposure": 114.65,
+      "total_value": 215.31,
+      "spot": 117145.0
+    },
+    {
+      "date": "2025-09-20",
+      "capital": 100.66,
+      "exposure": 114.65,
+      "total_value": 215.31,
+      "spot": 115656.0
+    },
+    {
+      "date": "2025-09-21",
+      "capital": 100.66,
+      "exposure": 114.65,
+      "total_value": 215.31,
+      "spot": 115716.0
+    },
+    {
+      "date": "2025-09-22",
+      "capital": 100.66,
+      "exposure": 114.65,
+      "total_value": 215.31,
+      "spot": 115304.0
+    },
+    {
+      "date": "2025-09-23",
+      "capital": 221.53,
+      "exposure": 0,
+      "total_value": 221.53,
+      "spot": 112697.0
+    },
+    {
+      "date": "2025-09-24",
+      "capital": 107.27,
+      "exposure": 114.26,
+      "total_value": 221.53,
+      "spot": 112022.0
+    },
+    {
+      "date": "2025-09-25",
+      "capital": 107.27,
+      "exposure": 114.26,
+      "total_value": 221.53,
+      "spot": 113321.0
+    },
+    {
+      "date": "2025-09-26",
+      "capital": 107.27,
+      "exposure": 114.26,
+      "total_value": 221.53,
+      "spot": 108964.0
+    },
+    {
+      "date": "2025-09-27",
+      "capital": 107.27,
+      "exposure": 114.26,
+      "total_value": 221.53,
+      "spot": 109710.0
+    },
+    {
+      "date": "2025-09-28",
+      "capital": 107.27,
+      "exposure": 114.26,
+      "total_value": 221.53,
+      "spot": 109655.0
+    },
+    {
+      "date": "2025-09-29",
+      "capital": 107.27,
+      "exposure": 114.26,
+      "total_value": 221.53,
+      "spot": 112143.0
+    },
+    {
+      "date": "2025-09-30",
+      "capital": 231.08,
+      "exposure": 0,
+      "total_value": 231.08,
+      "spot": 114309.0
+    },
+    {
+      "date": "2025-10-01",
+      "capital": 95.56,
+      "exposure": 135.52,
+      "total_value": 231.08,
+      "spot": 114024.0
+    },
+    {
+      "date": "2025-10-02",
+      "capital": 95.56,
+      "exposure": 135.52,
+      "total_value": 231.08,
+      "spot": 118503.0
+    },
+    {
+      "date": "2025-10-03",
+      "capital": 95.56,
+      "exposure": 135.52,
+      "total_value": 231.08,
+      "spot": 120612.0
+    },
+    {
+      "date": "2025-10-04",
+      "capital": 95.56,
+      "exposure": 135.52,
+      "total_value": 231.08,
+      "spot": 122250.0
+    },
+    {
+      "date": "2025-10-05",
+      "capital": 95.56,
+      "exposure": 135.52,
+      "total_value": 231.08,
+      "spot": 122381.0
+    },
+    {
+      "date": "2025-10-06",
+      "capital": 95.56,
+      "exposure": 135.52,
+      "total_value": 231.08,
+      "spot": 123506.0
+    },
+    {
+      "date": "2025-10-07",
+      "capital": 241.35,
+      "exposure": 0,
+      "total_value": 241.35,
+      "spot": 124774.0
+    },
+    {
+      "date": "2025-10-08",
+      "capital": 115.42,
+      "exposure": 125.93,
+      "total_value": 241.35,
+      "spot": 121519.0
+    },
+    {
+      "date": "2025-10-09",
+      "capital": 115.42,
+      "exposure": 125.93,
+      "total_value": 241.35,
+      "spot": 123353.0
+    },
+    {
+      "date": "2025-10-10",
+      "capital": 115.42,
+      "exposure": 125.93,
+      "total_value": 241.35,
+      "spot": 121698.0
+    },
+    {
+      "date": "2025-10-11",
+      "capital": 115.42,
+      "exposure": 125.93,
+      "total_value": 241.35,
+      "spot": 113202.0
+    },
+    {
+      "date": "2025-10-12",
+      "capital": 115.42,
+      "exposure": 125.93,
+      "total_value": 241.35,
+      "spot": 110853.0
+    },
+    {
+      "date": "2025-10-13",
+      "capital": 115.42,
+      "exposure": 125.93,
+      "total_value": 241.35,
+      "spot": 115190.0
+    },
+    {
+      "date": "2025-10-14",
+      "capital": 256.12,
+      "exposure": 0,
+      "total_value": 256.12,
+      "spot": 115222.0
+    },
+    {
+      "date": "2025-10-15",
+      "capital": 150.95,
+      "exposure": 105.16,
+      "total_value": 256.12,
+      "spot": 113157.0
+    },
+    {
+      "date": "2025-10-16",
+      "capital": 150.95,
+      "exposure": 105.16,
+      "total_value": 256.12,
+      "spot": 110709.0
+    },
+    {
+      "date": "2025-10-17",
+      "capital": 150.95,
+      "exposure": 105.16,
+      "total_value": 256.12,
+      "spot": 108077.0
+    },
+    {
+      "date": "2025-10-18",
+      "capital": 150.95,
+      "exposure": 105.16,
+      "total_value": 256.12,
+      "spot": 106444.0
+    },
+    {
+      "date": "2025-10-19",
+      "capital": 150.95,
+      "exposure": 105.16,
+      "total_value": 256.12,
+      "spot": 107156.0
+    },
+    {
+      "date": "2025-10-20",
+      "capital": 150.95,
+      "exposure": 105.16,
+      "total_value": 256.12,
+      "spot": 108621.0
+    },
+    {
+      "date": "2025-10-21",
+      "capital": 265.76,
+      "exposure": 0,
+      "total_value": 265.76,
+      "spot": 110609.0
+    },
+    {
+      "date": "2025-10-22",
+      "capital": 131.27,
+      "exposure": 134.49,
+      "total_value": 265.76,
+      "spot": 108486.0
+    },
+    {
+      "date": "2025-10-23",
+      "capital": 131.27,
+      "exposure": 134.49,
+      "total_value": 265.76,
+      "spot": 107618.0
+    },
+    {
+      "date": "2025-10-24",
+      "capital": 131.27,
+      "exposure": 134.49,
+      "total_value": 265.76,
+      "spot": 110049.0
+    },
+    {
+      "date": "2025-10-25",
+      "capital": 131.27,
+      "exposure": 134.49,
+      "total_value": 265.76,
+      "spot": 110998.0
+    },
+    {
+      "date": "2025-10-26",
+      "capital": 131.27,
+      "exposure": 134.49,
+      "total_value": 265.76,
+      "spot": 111620.0
+    },
+    {
+      "date": "2025-10-27",
+      "capital": 131.27,
+      "exposure": 134.49,
+      "total_value": 265.76,
+      "spot": 114476.0
+    },
+    {
+      "date": "2025-10-28",
+      "capital": 276.06,
+      "exposure": 0,
+      "total_value": 276.06,
+      "spot": 114183.0
+    },
+    {
+      "date": "2025-10-29",
+      "capital": 142.27,
+      "exposure": 133.79,
+      "total_value": 276.06,
+      "spot": 112950.0
+    },
+    {
+      "date": "2025-10-30",
+      "capital": 142.27,
+      "exposure": 133.79,
+      "total_value": 276.06,
+      "spot": 110047.0
+    },
+    {
+      "date": "2025-10-31",
+      "capital": 142.27,
+      "exposure": 133.79,
+      "total_value": 276.06,
+      "spot": 108241.0
+    },
+    {
+      "date": "2025-11-01",
+      "capital": 142.27,
+      "exposure": 133.79,
+      "total_value": 276.06,
+      "spot": 109574.0
+    },
+    {
+      "date": "2025-11-02",
+      "capital": 142.27,
+      "exposure": 133.79,
+      "total_value": 276.06,
+      "spot": 110014.0
+    },
+    {
+      "date": "2025-11-03",
+      "capital": 142.27,
+      "exposure": 133.79,
+      "total_value": 276.06,
+      "spot": 110650.0
+    },
+    {
+      "date": "2025-11-04",
+      "capital": 286.07,
+      "exposure": 0,
+      "total_value": 286.07,
+      "spot": 106521.0
+    },
+    {
+      "date": "2025-11-05",
+      "capital": 148.33,
+      "exposure": 137.74,
+      "total_value": 286.07,
+      "spot": 101635.0
+    },
+    {
+      "date": "2025-11-06",
+      "capital": 148.33,
+      "exposure": 137.74,
+      "total_value": 286.07,
+      "spot": 103878.0
+    },
+    {
+      "date": "2025-11-07",
+      "capital": 148.33,
+      "exposure": 137.74,
+      "total_value": 286.07,
+      "spot": 101323.0
+    },
+    {
+      "date": "2025-11-08",
+      "capital": 148.33,
+      "exposure": 137.74,
+      "total_value": 286.07,
+      "spot": 103396.0
+    },
+    {
+      "date": "2025-11-09",
+      "capital": 148.33,
+      "exposure": 137.74,
+      "total_value": 286.07,
+      "spot": 102290.0
+    },
+    {
+      "date": "2025-11-10",
+      "capital": 148.33,
+      "exposure": 137.74,
+      "total_value": 286.07,
+      "spot": 104710.0
+    },
+    {
+      "date": "2025-11-11",
+      "capital": 298.09,
+      "exposure": 0,
+      "total_value": 298.09,
+      "spot": 105909.0
+    },
+    {
+      "date": "2025-11-12",
+      "capital": 126.54,
+      "exposure": 171.55,
+      "total_value": 298.09,
+      "spot": 102961.0
+    },
+    {
+      "date": "2025-11-13",
+      "capital": 126.54,
+      "exposure": 171.55,
+      "total_value": 298.09,
+      "spot": 101522.0
+    },
+    {
+      "date": "2025-11-14",
+      "capital": 126.54,
+      "exposure": 171.55,
+      "total_value": 298.09,
+      "spot": 99730.0
+    },
+    {
+      "date": "2025-11-15",
+      "capital": 126.54,
+      "exposure": 171.55,
+      "total_value": 298.09,
+      "spot": 94456.0
+    },
+    {
+      "date": "2025-11-16",
+      "capital": 126.54,
+      "exposure": 171.55,
+      "total_value": 298.09,
+      "spot": 95508.0
+    },
+    {
+      "date": "2025-11-17",
+      "capital": 126.54,
+      "exposure": 171.55,
+      "total_value": 298.09,
+      "spot": 94411.0
+    },
+    {
+      "date": "2025-11-18",
+      "capital": 312.25,
+      "exposure": 0,
+      "total_value": 312.25,
+      "spot": 92037.0
+    },
+    {
+      "date": "2025-11-19",
+      "capital": 203.38,
+      "exposure": 108.87,
+      "total_value": 312.25,
+      "spot": 92820.0
+    },
+    {
+      "date": "2025-11-20",
+      "capital": 203.38,
+      "exposure": 108.87,
+      "total_value": 312.25,
+      "spot": 91363.0
+    },
+    {
+      "date": "2025-11-21",
+      "capital": 203.38,
+      "exposure": 108.87,
+      "total_value": 312.25,
+      "spot": 86650.0
+    },
+    {
+      "date": "2025-11-22",
+      "capital": 203.38,
+      "exposure": 108.87,
+      "total_value": 312.25,
+      "spot": 85052.0
+    },
+    {
+      "date": "2025-11-23",
+      "capital": 203.38,
+      "exposure": 108.87,
+      "total_value": 312.25,
+      "spot": 84683.0
+    },
+    {
+      "date": "2025-11-24",
+      "capital": 203.38,
+      "exposure": 108.87,
+      "total_value": 312.25,
+      "spot": 86784.0
+    },
+    {
+      "date": "2025-11-25",
+      "capital": 326.1,
+      "exposure": 0,
+      "total_value": 326.1,
+      "spot": 88229.0
+    },
+    {
+      "date": "2025-11-26",
+      "capital": 198.64,
+      "exposure": 127.46,
+      "total_value": 326.1,
+      "spot": 87310.0
+    },
+    {
+      "date": "2025-11-27",
+      "capital": 198.64,
+      "exposure": 127.46,
+      "total_value": 326.1,
+      "spot": 90474.0
+    },
+    {
+      "date": "2025-11-28",
+      "capital": 198.64,
+      "exposure": 127.46,
+      "total_value": 326.1,
+      "spot": 91279.0
+    },
+    {
+      "date": "2025-11-29",
+      "capital": 198.64,
+      "exposure": 127.46,
+      "total_value": 326.1,
+      "spot": 90950.0
+    },
+    {
+      "date": "2025-11-30",
+      "capital": 198.64,
+      "exposure": 127.46,
+      "total_value": 326.1,
+      "spot": 90841.0
+    },
+    {
+      "date": "2025-12-01",
+      "capital": 198.64,
+      "exposure": 127.46,
+      "total_value": 326.1,
+      "spot": 90406.0
+    },
+    {
+      "date": "2025-12-02",
+      "capital": 340.35,
+      "exposure": 0,
+      "total_value": 340.35,
+      "spot": 86281.0
+    },
+    {
+      "date": "2025-12-03",
+      "capital": 152.97,
+      "exposure": 187.38,
+      "total_value": 340.35,
+      "spot": 91345.0
+    },
+    {
+      "date": "2025-12-04",
+      "capital": 152.97,
+      "exposure": 187.38,
+      "total_value": 340.35,
+      "spot": 93619.0
+    },
+    {
+      "date": "2025-12-05",
+      "capital": 152.97,
+      "exposure": 187.38,
+      "total_value": 340.35,
+      "spot": 92141.0
+    },
+    {
+      "date": "2025-12-06",
+      "capital": 152.97,
+      "exposure": 187.38,
+      "total_value": 340.35,
+      "spot": 89307.0
+    },
+    {
+      "date": "2025-12-07",
+      "capital": 152.97,
+      "exposure": 187.38,
+      "total_value": 340.35,
+      "spot": 89245.0
+    },
+    {
+      "date": "2025-12-08",
+      "capital": 152.97,
+      "exposure": 187.38,
+      "total_value": 340.35,
+      "spot": 90163.0
+    },
+    {
+      "date": "2025-12-09",
+      "capital": 351.74,
+      "exposure": 0,
+      "total_value": 351.74,
+      "spot": 90618.0
+    },
+    {
+      "date": "2025-12-10",
+      "capital": 152.15,
+      "exposure": 199.58,
+      "total_value": 351.74,
+      "spot": 92723.0
+    },
+    {
+      "date": "2025-12-11",
+      "capital": 152.15,
+      "exposure": 199.58,
+      "total_value": 351.74,
+      "spot": 92005.0
+    },
+    {
+      "date": "2025-12-12",
+      "capital": 152.15,
+      "exposure": 199.58,
+      "total_value": 351.74,
+      "spot": 92494.0
+    },
+    {
+      "date": "2025-12-13",
+      "capital": 152.15,
+      "exposure": 199.58,
+      "total_value": 351.74,
+      "spot": 90307.0
+    },
+    {
+      "date": "2025-12-14",
+      "capital": 152.15,
+      "exposure": 199.58,
+      "total_value": 351.74,
+      "spot": 90257.0
+    },
+    {
+      "date": "2025-12-15",
+      "capital": 152.15,
+      "exposure": 199.58,
+      "total_value": 351.74,
+      "spot": 88231.0
+    },
+    {
+      "date": "2025-12-16",
+      "capital": 367.83,
+      "exposure": 0,
+      "total_value": 367.83,
+      "spot": 86414.0
+    },
+    {
+      "date": "2025-12-17",
+      "capital": 240.07,
+      "exposure": 127.76,
+      "total_value": 367.83,
+      "spot": 87822.0
+    },
+    {
+      "date": "2025-12-18",
+      "capital": 240.07,
+      "exposure": 127.76,
+      "total_value": 367.83,
+      "spot": 86065.0
+    },
+    {
+      "date": "2025-12-19",
+      "capital": 240.07,
+      "exposure": 127.76,
+      "total_value": 367.83,
+      "spot": 85450.0
+    },
+    {
+      "date": "2025-12-20",
+      "capital": 240.07,
+      "exposure": 127.76,
+      "total_value": 367.83,
+      "spot": 88104.0
+    },
+    {
+      "date": "2025-12-21",
+      "capital": 240.07,
+      "exposure": 127.76,
+      "total_value": 367.83,
+      "spot": 88348.0
+    },
+    {
+      "date": "2025-12-22",
+      "capital": 240.07,
+      "exposure": 127.76,
+      "total_value": 367.83,
+      "spot": 88577.0
+    },
+    {
+      "date": "2025-12-23",
+      "capital": 373.94,
+      "exposure": 0,
+      "total_value": 373.94,
+      "spot": 88491.0
+    },
+    {
+      "date": "2025-12-24",
+      "capital": 153.3,
+      "exposure": 220.65,
+      "total_value": 373.94,
+      "spot": 87406.0
+    },
+    {
+      "date": "2025-12-25",
+      "capital": 153.3,
+      "exposure": 220.65,
+      "total_value": 373.94,
+      "spot": 87643.0
+    },
+    {
+      "date": "2025-12-26",
+      "capital": 153.3,
+      "exposure": 220.65,
+      "total_value": 373.94,
+      "spot": 87230.0
+    },
+    {
+      "date": "2025-12-27",
+      "capital": 153.3,
+      "exposure": 220.65,
+      "total_value": 373.94,
+      "spot": 87306.0
+    },
+    {
+      "date": "2025-12-28",
+      "capital": 153.3,
+      "exposure": 220.65,
+      "total_value": 373.94,
+      "spot": 87807.0
+    },
+    {
+      "date": "2025-12-29",
+      "capital": 153.3,
+      "exposure": 220.65,
+      "total_value": 373.94,
+      "spot": 87823.0
+    },
+    {
+      "date": "2025-12-30",
+      "capital": 390.95,
+      "exposure": 0,
+      "total_value": 390.95,
+      "spot": 87157.0
+    },
+    {
+      "date": "2025-12-31",
+      "capital": 189.36,
+      "exposure": 201.59,
+      "total_value": 390.95,
+      "spot": 88415.0
+    },
+    {
+      "date": "2026-01-01",
+      "capital": 189.36,
+      "exposure": 201.59,
+      "total_value": 390.95,
+      "spot": 87520.0
+    },
+    {
+      "date": "2026-01-02",
+      "capital": 189.36,
+      "exposure": 201.59,
+      "total_value": 390.95,
+      "spot": 88728.0
+    },
+    {
+      "date": "2026-01-03",
+      "capital": 189.36,
+      "exposure": 201.59,
+      "total_value": 390.95,
+      "spot": 89926.0
+    },
+    {
+      "date": "2026-01-04",
+      "capital": 189.36,
+      "exposure": 201.59,
+      "total_value": 390.95,
+      "spot": 90594.0
+    },
+    {
+      "date": "2026-01-05",
+      "capital": 189.36,
+      "exposure": 201.59,
+      "total_value": 390.95,
+      "spot": 91373.0
+    },
+    {
+      "date": "2026-01-06",
+      "capital": 386.06,
+      "exposure": 0,
+      "total_value": 386.06,
+      "spot": 93927.0
+    },
+    {
+      "date": "2026-01-07",
+      "capital": 205.77,
+      "exposure": 180.29,
+      "total_value": 386.06,
+      "spot": 93667.0
+    },
+    {
+      "date": "2026-01-08",
+      "capital": 205.77,
+      "exposure": 180.29,
+      "total_value": 386.06,
+      "spot": 91257.0
+    },
+    {
+      "date": "2026-01-09",
+      "capital": 205.77,
+      "exposure": 180.29,
+      "total_value": 386.06,
+      "spot": 90984.0
+    },
+    {
+      "date": "2026-01-10",
+      "capital": 205.77,
+      "exposure": 180.29,
+      "total_value": 386.06,
+      "spot": 90505.0
+    },
+    {
+      "date": "2026-01-11",
+      "capital": 205.77,
+      "exposure": 180.29,
+      "total_value": 386.06,
+      "spot": 90442.0
+    },
+    {
+      "date": "2026-01-12",
+      "capital": 205.77,
+      "exposure": 180.29,
+      "total_value": 386.06,
+      "spot": 90819.0
+    },
+    {
+      "date": "2026-01-13",
+      "capital": 411.25,
+      "exposure": 0,
+      "total_value": 411.25,
+      "spot": 91135.0
+    },
+    {
+      "date": "2026-01-14",
+      "capital": 170.0,
+      "exposure": 241.25,
+      "total_value": 411.25,
+      "spot": 95260.0
+    },
+    {
+      "date": "2026-01-15",
+      "capital": 170.0,
+      "exposure": 241.25,
+      "total_value": 411.25,
+      "spot": 97008.0
+    },
+    {
+      "date": "2026-01-16",
+      "capital": 170.0,
+      "exposure": 241.25,
+      "total_value": 411.25,
+      "spot": 95585.0
+    },
+    {
+      "date": "2026-01-17",
+      "capital": 170.0,
+      "exposure": 241.25,
+      "total_value": 411.25,
+      "spot": 95516.0
+    },
+    {
+      "date": "2026-01-18",
+      "capital": 170.0,
+      "exposure": 241.25,
+      "total_value": 411.25,
+      "spot": 95100.0
+    },
+    {
+      "date": "2026-01-19",
+      "capital": 170.0,
+      "exposure": 241.25,
+      "total_value": 411.25,
+      "spot": 93753.0
+    },
+    {
+      "date": "2026-01-20",
+      "capital": 423.74,
+      "exposure": 0,
+      "total_value": 423.74,
+      "spot": 92558.0
+    },
+    {
+      "date": "2026-01-21",
+      "capital": 212.45,
+      "exposure": 211.29,
+      "total_value": 423.74,
+      "spot": 88313.0
+    },
+    {
+      "date": "2026-01-22",
+      "capital": 212.45,
+      "exposure": 211.29,
+      "total_value": 423.74,
+      "spot": 89354.0
+    },
+    {
+      "date": "2026-01-23",
+      "capital": 212.45,
+      "exposure": 211.29,
+      "total_value": 423.74,
+      "spot": 89443.0
+    },
+    {
+      "date": "2026-01-24",
+      "capital": 212.45,
+      "exposure": 211.29,
+      "total_value": 423.74,
+      "spot": 89412.0
+    },
+    {
+      "date": "2026-01-25",
+      "capital": 212.45,
+      "exposure": 211.29,
+      "total_value": 423.74,
+      "spot": 89171.0
+    },
+    {
+      "date": "2026-01-26",
+      "capital": 212.45,
+      "exposure": 211.29,
+      "total_value": 423.74,
+      "spot": 86548.0
+    },
+    {
+      "date": "2026-01-27",
+      "capital": 444.04,
+      "exposure": 0,
+      "total_value": 444.04,
+      "spot": 88308.0
+    },
+    {
+      "date": "2026-01-28",
+      "capital": 179.4,
+      "exposure": 264.64,
+      "total_value": 444.04,
+      "spot": 89204.0
+    },
+    {
+      "date": "2026-01-29",
+      "capital": 179.4,
+      "exposure": 264.64,
+      "total_value": 444.04,
+      "spot": 89162.0
+    },
+    {
+      "date": "2026-01-30",
+      "capital": 179.4,
+      "exposure": 264.64,
+      "total_value": 444.04,
+      "spot": 84570.0
+    },
+    {
+      "date": "2026-01-31",
+      "capital": 179.4,
+      "exposure": 264.64,
+      "total_value": 444.04,
+      "spot": 84142.0
+    },
+    {
+      "date": "2026-02-01",
+      "capital": 179.4,
+      "exposure": 264.64,
+      "total_value": 444.04,
+      "spot": 78726.0
+    },
+    {
+      "date": "2026-02-02",
+      "capital": 179.4,
+      "exposure": 264.64,
+      "total_value": 444.04,
+      "spot": 76937.0
+    },
+    {
+      "date": "2026-02-03",
+      "capital": 460.07,
+      "exposure": 0,
+      "total_value": 460.07,
+      "spot": 78768.0
+    },
+    {
+      "date": "2026-02-04",
+      "capital": 189.61,
+      "exposure": 270.47,
+      "total_value": 460.07,
+      "spot": 75639.0
+    },
+    {
+      "date": "2026-02-05",
+      "capital": 189.61,
+      "exposure": 270.47,
+      "total_value": 460.07,
+      "spot": 73172.0
+    },
+    {
+      "date": "2026-02-06",
+      "capital": 189.61,
+      "exposure": 270.47,
+      "total_value": 460.07,
+      "spot": 62854.0
+    },
+    {
+      "date": "2026-02-07",
+      "capital": 189.61,
+      "exposure": 270.47,
+      "total_value": 460.07,
+      "spot": 70524.0
+    },
+    {
+      "date": "2026-02-08",
+      "capital": 189.61,
+      "exposure": 270.47,
+      "total_value": 460.07,
+      "spot": 69297.0
+    },
+    {
+      "date": "2026-02-09",
+      "capital": 189.61,
+      "exposure": 270.47,
+      "total_value": 460.07,
+      "spot": 70542.0
+    },
+    {
+      "date": "2026-02-10",
+      "capital": 479.22,
+      "exposure": 0,
+      "total_value": 479.22,
+      "spot": 70096.0
+    },
+    {
+      "date": "2026-02-11",
+      "capital": 333.9,
+      "exposure": 145.32,
+      "total_value": 479.22,
+      "spot": 68780.0
+    },
+    {
+      "date": "2026-02-12",
+      "capital": 333.9,
+      "exposure": 145.32,
+      "total_value": 479.22,
+      "spot": 66938.0
+    },
+    {
+      "date": "2026-02-13",
+      "capital": 333.9,
+      "exposure": 145.32,
+      "total_value": 479.22,
+      "spot": 66185.0
+    },
+    {
+      "date": "2026-02-14",
+      "capital": 333.9,
+      "exposure": 145.32,
+      "total_value": 479.22,
+      "spot": 68839.0
+    },
+    {
+      "date": "2026-02-15",
+      "capital": 333.9,
+      "exposure": 145.32,
+      "total_value": 479.22,
+      "spot": 69766.0
+    },
+    {
+      "date": "2026-02-16",
+      "capital": 333.9,
+      "exposure": 145.32,
+      "total_value": 479.22,
+      "spot": 68717.0
+    },
+    {
+      "date": "2026-02-17",
+      "capital": 501.44,
+      "exposure": 0,
+      "total_value": 501.44,
+      "spot": 68908.0
+    },
+    {
+      "date": "2026-02-18",
+      "capital": 304.22,
+      "exposure": 197.22,
+      "total_value": 501.44,
+      "spot": 67489.0
+    },
+    {
+      "date": "2026-02-19",
+      "capital": 304.22,
+      "exposure": 197.22,
+      "total_value": 501.44,
+      "spot": 66456.0
+    },
+    {
+      "date": "2026-02-20",
+      "capital": 304.22,
+      "exposure": 197.22,
+      "total_value": 501.44,
+      "spot": 66919.0
+    },
+    {
+      "date": "2026-02-21",
+      "capital": 304.22,
+      "exposure": 197.22,
+      "total_value": 501.44,
+      "spot": 67970.0
+    },
+    {
+      "date": "2026-02-22",
+      "capital": 304.22,
+      "exposure": 197.22,
+      "total_value": 501.44,
+      "spot": 67978.0
+    },
+    {
+      "date": "2026-02-23",
+      "capital": 304.22,
+      "exposure": 197.22,
+      "total_value": 501.44,
+      "spot": 67585.0
+    },
+    {
+      "date": "2026-02-24",
+      "capital": 517.89,
+      "exposure": 0,
+      "total_value": 517.89,
+      "spot": 64578.0
+    },
+    {
+      "date": "2026-02-24",
+      "capital": 485.26,
+      "exposure": 32.63,
+      "total_value": 517.89,
+      "spot": 64124.0
+    }
+  ],
+  "trades": [
+    {
+      "date": "2025-03-11",
+      "desc": "BTC < $96,000",
+      "result": "WIN",
+      "pnl": 1.1603,
+      "capital_after": 60.61
+    },
+    {
+      "date": "2025-03-11",
+      "desc": "BTC < $104,000",
+      "result": "WIN",
+      "pnl": 0.6903,
+      "capital_after": 72.6
+    },
+    {
+      "date": "2025-03-11",
+      "desc": "BTC < $114,000",
+      "result": "WIN",
+      "pnl": 0.5856,
+      "capital_after": 84.59
+    },
+    {
+      "date": "2025-03-11",
+      "desc": "BTC > $76,000",
+      "result": "WIN",
+      "pnl": 0.6689,
+      "capital_after": 91.57
+    },
+    {
+      "date": "2025-03-11",
+      "desc": "BTC < $116,000",
+      "result": "WIN",
+      "pnl": 0.4586,
+      "capital_after": 103.56
+    },
+    {
+      "date": "2025-03-18",
+      "desc": "BTC < $106,000",
+      "result": "WIN",
+      "pnl": 0.9326,
+      "capital_after": 82.52
+    },
+    {
+      "date": "2025-03-18",
+      "desc": "BTC < $104,000",
+      "result": "WIN",
+      "pnl": 0.7631,
+      "capital_after": 95.5
+    },
+    {
+      "date": "2025-03-18",
+      "desc": "BTC < $92,000",
+      "result": "WIN",
+      "pnl": 0.8561,
+      "capital_after": 101.48
+    },
+    {
+      "date": "2025-03-18",
+      "desc": "BTC < $86,000",
+      "result": "WIN",
+      "pnl": 1.1054,
+      "capital_after": 105.46
+    },
+    {
+      "date": "2025-03-18",
+      "desc": "BTC < $82,000",
+      "result": "LOSS",
+      "pnl": -1.7592,
+      "capital_after": 105.46
+    },
+    {
+      "date": "2025-03-25",
+      "desc": "BTC < $102,000",
+      "result": "WIN",
+      "pnl": 1.1481,
+      "capital_after": 76.71
+    },
+    {
+      "date": "2025-03-25",
+      "desc": "BTC < $88,000",
+      "result": "WIN",
+      "pnl": 1.9781,
+      "capital_after": 81.67
+    },
+    {
+      "date": "2025-03-25",
+      "desc": "BTC < $106,000",
+      "result": "WIN",
+      "pnl": 0.86,
+      "capital_after": 94.65
+    },
+    {
+      "date": "2025-03-25",
+      "desc": "BTC < $84,000",
+      "result": "LOSS",
+      "pnl": -2.499,
+      "capital_after": 94.65
+    },
+    {
+      "date": "2025-03-25",
+      "desc": "BTC < $110,000",
+      "result": "WIN",
+      "pnl": 0.6892,
+      "capital_after": 107.64
+    },
+    {
+      "date": "2025-04-01",
+      "desc": "BTC < $114,000",
+      "result": "WIN",
+      "pnl": 0.888,
+      "capital_after": 68.36
+    },
+    {
+      "date": "2025-04-01",
+      "desc": "BTC < $110,000",
+      "result": "WIN",
+      "pnl": 0.8256,
+      "capital_after": 81.34
+    },
+    {
+      "date": "2025-04-01",
+      "desc": "BTC < $116,000",
+      "result": "WIN",
+      "pnl": 0.7122,
+      "capital_after": 94.33
+    },
+    {
+      "date": "2025-04-01",
+      "desc": "BTC < $102,000",
+      "result": "WIN",
+      "pnl": 0.6565,
+      "capital_after": 101.32
+    },
+    {
+      "date": "2025-04-01",
+      "desc": "BTC < $106,000",
+      "result": "WIN",
+      "pnl": 0.5831,
+      "capital_after": 111.3
+    },
+    {
+      "date": "2025-04-08",
+      "desc": "BTC < $92,000",
+      "result": "WIN",
+      "pnl": 1.5633,
+      "capital_after": 67.3
+    },
+    {
+      "date": "2025-04-08",
+      "desc": "BTC < $106,000",
+      "result": "WIN",
+      "pnl": 0.9439,
+      "capital_after": 81.28
+    },
+    {
+      "date": "2025-04-08",
+      "desc": "BTC < $102,000",
+      "result": "WIN",
+      "pnl": 0.8205,
+      "capital_after": 95.26
+    },
+    {
+      "date": "2025-04-08",
+      "desc": "BTC > $66,000",
+      "result": "WIN",
+      "pnl": 0.7546,
+      "capital_after": 109.25
+    },
+    {
+      "date": "2025-04-08",
+      "desc": "BTC < $94,000",
+      "result": "WIN",
+      "pnl": 0.8452,
+      "capital_after": 116.23
+    },
+    {
+      "date": "2025-04-15",
+      "desc": "BTC < $92,000",
+      "result": "WIN",
+      "pnl": 1.276,
+      "capital_after": 89.09
+    },
+    {
+      "date": "2025-04-15",
+      "desc": "BTC < $94,000",
+      "result": "WIN",
+      "pnl": 0.8054,
+      "capital_after": 103.08
+    },
+    {
+      "date": "2025-04-15",
+      "desc": "BTC < $88,000",
+      "result": "WIN",
+      "pnl": 0.6633,
+      "capital_after": 109.06
+    },
+    {
+      "date": "2025-04-15",
+      "desc": "BTC < $90,000",
+      "result": "WIN",
+      "pnl": 0.599,
+      "capital_after": 117.05
+    },
+    {
+      "date": "2025-04-15",
+      "desc": "BTC < $86,000",
+      "result": "WIN",
+      "pnl": 0.4672,
+      "capital_after": 120.04
+    },
+    {
+      "date": "2025-04-22",
+      "desc": "BTC < $104,000",
+      "result": "WIN",
+      "pnl": 1.5711,
+      "capital_after": 77.58
+    },
+    {
+      "date": "2025-04-22",
+      "desc": "BTC < $114,000",
+      "result": "WIN",
+      "pnl": 1.3039,
+      "capital_after": 92.56
+    },
+    {
+      "date": "2025-04-22",
+      "desc": "BTC < $100,000",
+      "result": "WIN",
+      "pnl": 1.1422,
+      "capital_after": 107.53
+    },
+    {
+      "date": "2025-04-22",
+      "desc": "BTC < $112,000",
+      "result": "WIN",
+      "pnl": 0.7129,
+      "capital_after": 122.52
+    },
+    {
+      "date": "2025-04-22",
+      "desc": "BTC < $90,000",
+      "result": "WIN",
+      "pnl": 0.7309,
+      "capital_after": 125.5
+    },
+    {
+      "date": "2025-04-29",
+      "desc": "BTC < $96,000",
+      "result": "WIN",
+      "pnl": 1.7258,
+      "capital_after": 85.28
+    },
+    {
+      "date": "2025-04-29",
+      "desc": "BTC < $116,000",
+      "result": "WIN",
+      "pnl": 1.1431,
+      "capital_after": 101.26
+    },
+    {
+      "date": "2025-04-29",
+      "desc": "BTC < $108,000",
+      "result": "WIN",
+      "pnl": 0.9251,
+      "capital_after": 117.24
+    },
+    {
+      "date": "2025-04-29",
+      "desc": "BTC < $98,000",
+      "result": "WIN",
+      "pnl": 0.9164,
+      "capital_after": 126.22
+    },
+    {
+      "date": "2025-04-29",
+      "desc": "BTC < $94,000",
+      "result": "LOSS",
+      "pnl": -3.991,
+      "capital_after": 126.22
+    },
+    {
+      "date": "2025-05-06",
+      "desc": "BTC < $128,000",
+      "result": "WIN",
+      "pnl": 1.1352,
+      "capital_after": 69.67
+    },
+    {
+      "date": "2025-05-06",
+      "desc": "BTC < $126,000",
+      "result": "WIN",
+      "pnl": 0.991,
+      "capital_after": 85.65
+    },
+    {
+      "date": "2025-05-06",
+      "desc": "BTC < $112,000",
+      "result": "WIN",
+      "pnl": 0.9379,
+      "capital_after": 100.63
+    },
+    {
+      "date": "2025-05-06",
+      "desc": "BTC < $120,000",
+      "result": "WIN",
+      "pnl": 0.6997,
+      "capital_after": 115.61
+    },
+    {
+      "date": "2025-05-06",
+      "desc": "BTC < $122,000",
+      "result": "WIN",
+      "pnl": 0.6145,
+      "capital_after": 130.6
+    },
+    {
+      "date": "2025-05-13",
+      "desc": "BTC < $124,000",
+      "result": "WIN",
+      "pnl": 1.3761,
+      "capital_after": 99.09
+    },
+    {
+      "date": "2025-05-13",
+      "desc": "BTC < $120,000",
+      "result": "WIN",
+      "pnl": 1.3078,
+      "capital_after": 116.06
+    },
+    {
+      "date": "2025-05-13",
+      "desc": "BTC < $110,000",
+      "result": "WIN",
+      "pnl": 1.0249,
+      "capital_after": 130.04
+    },
+    {
+      "date": "2025-05-13",
+      "desc": "BTC < $96,000",
+      "result": "LOSS",
+      "pnl": -2.0816,
+      "capital_after": 130.04
+    },
+    {
+      "date": "2025-05-13",
+      "desc": "BTC < $100,000",
+      "result": "LOSS",
+      "pnl": -2.1879,
+      "capital_after": 130.04
+    },
+    {
+      "date": "2025-05-20",
+      "desc": "BTC < $134,000",
+      "result": "WIN",
+      "pnl": 1.1995,
+      "capital_after": 78.87
+    },
+    {
+      "date": "2025-05-20",
+      "desc": "BTC < $122,000",
+      "result": "WIN",
+      "pnl": 1.0286,
+      "capital_after": 94.84
+    },
+    {
+      "date": "2025-05-20",
+      "desc": "BTC < $114,000",
+      "result": "WIN",
+      "pnl": 0.992,
+      "capital_after": 108.82
+    },
+    {
+      "date": "2025-05-20",
+      "desc": "BTC < $112,000",
+      "result": "WIN",
+      "pnl": 0.9202,
+      "capital_after": 118.81
+    },
+    {
+      "date": "2025-05-20",
+      "desc": "BTC < $132,000",
+      "result": "WIN",
+      "pnl": 0.6131,
+      "capital_after": 134.79
+    },
+    {
+      "date": "2025-05-27",
+      "desc": "BTC < $126,000",
+      "result": "WIN",
+      "pnl": 1.1929,
+      "capital_after": 74.96
+    },
+    {
+      "date": "2025-05-27",
+      "desc": "BTC < $130,000",
+      "result": "WIN",
+      "pnl": 0.858,
+      "capital_after": 91.94
+    },
+    {
+      "date": "2025-05-27",
+      "desc": "BTC < $140,000",
+      "result": "WIN",
+      "pnl": 0.6758,
+      "capital_after": 107.93
+    },
+    {
+      "date": "2025-05-27",
+      "desc": "BTC < $124,000",
+      "result": "WIN",
+      "pnl": 0.6539,
+      "capital_after": 123.91
+    },
+    {
+      "date": "2025-05-27",
+      "desc": "BTC < $118,000",
+      "result": "WIN",
+      "pnl": 0.7262,
+      "capital_after": 138.9
+    },
+    {
+      "date": "2025-06-03",
+      "desc": "BTC < $132,000",
+      "result": "WIN",
+      "pnl": 1.3283,
+      "capital_after": 78.37
+    },
+    {
+      "date": "2025-06-03",
+      "desc": "BTC < $120,000",
+      "result": "WIN",
+      "pnl": 0.9343,
+      "capital_after": 92.35
+    },
+    {
+      "date": "2025-06-03",
+      "desc": "BTC < $130,000",
+      "result": "WIN",
+      "pnl": 0.7247,
+      "capital_after": 109.33
+    },
+    {
+      "date": "2025-06-03",
+      "desc": "BTC > $90,000",
+      "result": "WIN",
+      "pnl": 0.7014,
+      "capital_after": 126.32
+    },
+    {
+      "date": "2025-06-03",
+      "desc": "BTC > $96,000",
+      "result": "WIN",
+      "pnl": 0.7164,
+      "capital_after": 143.3
+    },
+    {
+      "date": "2025-06-10",
+      "desc": "BTC < $112,000",
+      "result": "WIN",
+      "pnl": 2.2174,
+      "capital_after": 90.08
+    },
+    {
+      "date": "2025-06-10",
+      "desc": "BTC < $128,000",
+      "result": "WIN",
+      "pnl": 1.1537,
+      "capital_after": 108.06
+    },
+    {
+      "date": "2025-06-10",
+      "desc": "BTC < $110,000",
+      "result": "LOSS",
+      "pnl": -4.3542,
+      "capital_after": 108.06
+    },
+    {
+      "date": "2025-06-10",
+      "desc": "BTC < $120,000",
+      "result": "WIN",
+      "pnl": 0.9067,
+      "capital_after": 126.04
+    },
+    {
+      "date": "2025-06-10",
+      "desc": "BTC < $122,000",
+      "result": "WIN",
+      "pnl": 0.7973,
+      "capital_after": 144.03
+    },
+    {
+      "date": "2025-06-17",
+      "desc": "BTC < $130,000",
+      "result": "WIN",
+      "pnl": 1.3936,
+      "capital_after": 77.36
+    },
+    {
+      "date": "2025-06-17",
+      "desc": "BTC < $144,000",
+      "result": "WIN",
+      "pnl": 1.2383,
+      "capital_after": 95.34
+    },
+    {
+      "date": "2025-06-17",
+      "desc": "BTC < $128,000",
+      "result": "WIN",
+      "pnl": 0.9384,
+      "capital_after": 113.32
+    },
+    {
+      "date": "2025-06-17",
+      "desc": "BTC < $132,000",
+      "result": "WIN",
+      "pnl": 0.882,
+      "capital_after": 131.3
+    },
+    {
+      "date": "2025-06-17",
+      "desc": "BTC < $148,000",
+      "result": "WIN",
+      "pnl": 0.8044,
+      "capital_after": 149.28
+    },
+    {
+      "date": "2025-06-24",
+      "desc": "BTC < $132,000",
+      "result": "WIN",
+      "pnl": 1.2606,
+      "capital_after": 93.46
+    },
+    {
+      "date": "2025-06-24",
+      "desc": "BTC < $112,000",
+      "result": "WIN",
+      "pnl": 1.4824,
+      "capital_after": 100.43
+    },
+    {
+      "date": "2025-06-24",
+      "desc": "BTC < $122,000",
+      "result": "WIN",
+      "pnl": 0.8379,
+      "capital_after": 118.41
+    },
+    {
+      "date": "2025-06-24",
+      "desc": "BTC < $138,000",
+      "result": "WIN",
+      "pnl": 0.7179,
+      "capital_after": 136.4
+    },
+    {
+      "date": "2025-06-24",
+      "desc": "BTC < $120,000",
+      "result": "WIN",
+      "pnl": 0.8009,
+      "capital_after": 154.38
+    },
+    {
+      "date": "2025-07-01",
+      "desc": "BTC < $120,000",
+      "result": "WIN",
+      "pnl": 3.0376,
+      "capital_after": 84.93
+    },
+    {
+      "date": "2025-07-01",
+      "desc": "BTC < $136,000",
+      "result": "WIN",
+      "pnl": 1.7718,
+      "capital_after": 104.9
+    },
+    {
+      "date": "2025-07-01",
+      "desc": "BTC < $134,000",
+      "result": "WIN",
+      "pnl": 1.2382,
+      "capital_after": 123.87
+    },
+    {
+      "date": "2025-07-01",
+      "desc": "BTC < $122,000",
+      "result": "WIN",
+      "pnl": 0.7522,
+      "capital_after": 142.85
+    },
+    {
+      "date": "2025-07-01",
+      "desc": "BTC < $124,000",
+      "result": "WIN",
+      "pnl": 0.6591,
+      "capital_after": 161.84
+    },
+    {
+      "date": "2025-07-08",
+      "desc": "BTC < $116,000",
+      "result": "WIN",
+      "pnl": 2.0004,
+      "capital_after": 97.87
+    },
+    {
+      "date": "2025-07-08",
+      "desc": "BTC < $142,000",
+      "result": "WIN",
+      "pnl": 1.1603,
+      "capital_after": 117.85
+    },
+    {
+      "date": "2025-07-08",
+      "desc": "BTC < $118,000",
+      "result": "WIN",
+      "pnl": 1.3093,
+      "capital_after": 137.82
+    },
+    {
+      "date": "2025-07-08",
+      "desc": "BTC < $114,000",
+      "result": "WIN",
+      "pnl": 1.4553,
+      "capital_after": 148.79
+    },
+    {
+      "date": "2025-07-08",
+      "desc": "BTC < $120,000",
+      "result": "WIN",
+      "pnl": 1.0074,
+      "capital_after": 168.77
+    },
+    {
+      "date": "2025-07-15",
+      "desc": "BTC < $130,000",
+      "result": "WIN",
+      "pnl": 1.3295,
+      "capital_after": 93.76
+    },
+    {
+      "date": "2025-07-15",
+      "desc": "BTC < $144,000",
+      "result": "WIN",
+      "pnl": 1.0969,
+      "capital_after": 114.74
+    },
+    {
+      "date": "2025-07-15",
+      "desc": "BTC < $118,000",
+      "result": "LOSS",
+      "pnl": -16.6374,
+      "capital_after": 114.74
+    },
+    {
+      "date": "2025-07-15",
+      "desc": "BTC < $146,000",
+      "result": "WIN",
+      "pnl": 1.0311,
+      "capital_after": 135.72
+    },
+    {
+      "date": "2025-07-15",
+      "desc": "BTC < $120,000",
+      "result": "WIN",
+      "pnl": 1.1031,
+      "capital_after": 156.7
+    },
+    {
+      "date": "2025-07-22",
+      "desc": "BTC < $138,000",
+      "result": "WIN",
+      "pnl": 0.7541,
+      "capital_after": 83.92
+    },
+    {
+      "date": "2025-07-22",
+      "desc": "BTC > $92,000",
+      "result": "WIN",
+      "pnl": 0.6498,
+      "capital_after": 102.91
+    },
+    {
+      "date": "2025-07-22",
+      "desc": "BTC < $160,000",
+      "result": "WIN",
+      "pnl": 0.648,
+      "capital_after": 121.9
+    },
+    {
+      "date": "2025-07-22",
+      "desc": "BTC < $152,000",
+      "result": "WIN",
+      "pnl": 0.5921,
+      "capital_after": 140.88
+    },
+    {
+      "date": "2025-07-22",
+      "desc": "BTC < $148,000",
+      "result": "WIN",
+      "pnl": 0.5325,
+      "capital_after": 159.87
+    },
+    {
+      "date": "2025-07-29",
+      "desc": "BTC < $144,000",
+      "result": "WIN",
+      "pnl": 1.1603,
+      "capital_after": 98.74
+    },
+    {
+      "date": "2025-07-29",
+      "desc": "BTC < $122,000",
+      "result": "WIN",
+      "pnl": 1.9788,
+      "capital_after": 106.7
+    },
+    {
+      "date": "2025-07-29",
+      "desc": "BTC < $130,000",
+      "result": "WIN",
+      "pnl": 1.1054,
+      "capital_after": 126.68
+    },
+    {
+      "date": "2025-07-29",
+      "desc": "BTC < $156,000",
+      "result": "WIN",
+      "pnl": 0.929,
+      "capital_after": 146.66
+    },
+    {
+      "date": "2025-07-29",
+      "desc": "BTC < $148,000",
+      "result": "WIN",
+      "pnl": 0.6014,
+      "capital_after": 165.65
+    },
+    {
+      "date": "2025-08-05",
+      "desc": "BTC < $134,000",
+      "result": "WIN",
+      "pnl": 1.4509,
+      "capital_after": 120.31
+    },
+    {
+      "date": "2025-08-05",
+      "desc": "BTC < $120,000",
+      "result": "WIN",
+      "pnl": 3.3406,
+      "capital_after": 128.24
+    },
+    {
+      "date": "2025-08-05",
+      "desc": "BTC < $124,000",
+      "result": "WIN",
+      "pnl": 1.7434,
+      "capital_after": 138.21
+    },
+    {
+      "date": "2025-08-05",
+      "desc": "BTC < $136,000",
+      "result": "WIN",
+      "pnl": 0.9016,
+      "capital_after": 158.19
+    },
+    {
+      "date": "2025-08-05",
+      "desc": "BTC < $128,000",
+      "result": "WIN",
+      "pnl": 1.0819,
+      "capital_after": 174.17
+    },
+    {
+      "date": "2025-08-12",
+      "desc": "BTC < $124,000",
+      "result": "WIN",
+      "pnl": 2.6836,
+      "capital_after": 121.04
+    },
+    {
+      "date": "2025-08-12",
+      "desc": "BTC < $148,000",
+      "result": "WIN",
+      "pnl": 1.1901,
+      "capital_after": 143.02
+    },
+    {
+      "date": "2025-08-12",
+      "desc": "BTC < $120,000",
+      "result": "WIN",
+      "pnl": 1.7107,
+      "capital_after": 150.98
+    },
+    {
+      "date": "2025-08-12",
+      "desc": "BTC < $122,000",
+      "result": "WIN",
+      "pnl": 1.2505,
+      "capital_after": 160.96
+    },
+    {
+      "date": "2025-08-12",
+      "desc": "BTC < $128,000",
+      "result": "WIN",
+      "pnl": 0.9364,
+      "capital_after": 181.94
+    },
+    {
+      "date": "2025-08-19",
+      "desc": "BTC > $106,000",
+      "result": "WIN",
+      "pnl": 1.3727,
+      "capital_after": 117.5
+    },
+    {
+      "date": "2025-08-19",
+      "desc": "BTC < $150,000",
+      "result": "WIN",
+      "pnl": 1.0845,
+      "capital_after": 139.48
+    },
+    {
+      "date": "2025-08-19",
+      "desc": "BTC < $148,000",
+      "result": "WIN",
+      "pnl": 0.9874,
+      "capital_after": 161.46
+    },
+    {
+      "date": "2025-08-19",
+      "desc": "BTC < $130,000",
+      "result": "WIN",
+      "pnl": 1.1689,
+      "capital_after": 182.44
+    },
+    {
+      "date": "2025-08-19",
+      "desc": "BTC < $122,000",
+      "result": "WIN",
+      "pnl": 1.8463,
+      "capital_after": 188.4
+    },
+    {
+      "date": "2025-08-26",
+      "desc": "BTC < $122,000",
+      "result": "WIN",
+      "pnl": 3.608,
+      "capital_after": 120.7
+    },
+    {
+      "date": "2025-08-26",
+      "desc": "BTC < $136,000",
+      "result": "WIN",
+      "pnl": 1.6299,
+      "capital_after": 144.67
+    },
+    {
+      "date": "2025-08-26",
+      "desc": "BTC < $148,000",
+      "result": "WIN",
+      "pnl": 1.2104,
+      "capital_after": 167.64
+    },
+    {
+      "date": "2025-08-26",
+      "desc": "BTC < $120,000",
+      "result": "WIN",
+      "pnl": 1.903,
+      "capital_after": 174.6
+    },
+    {
+      "date": "2025-08-26",
+      "desc": "BTC < $132,000",
+      "result": "WIN",
+      "pnl": 0.8362,
+      "capital_after": 197.59
+    },
+    {
+      "date": "2025-09-02",
+      "desc": "BTC < $124,000",
+      "result": "WIN",
+      "pnl": 1.9502,
+      "capital_after": 126.97
+    },
+    {
+      "date": "2025-09-02",
+      "desc": "BTC < $134,000",
+      "result": "WIN",
+      "pnl": 1.6734,
+      "capital_after": 151.94
+    },
+    {
+      "date": "2025-09-02",
+      "desc": "BTC < $120,000",
+      "result": "WIN",
+      "pnl": 1.8975,
+      "capital_after": 172.9
+    },
+    {
+      "date": "2025-09-02",
+      "desc": "BTC < $132,000",
+      "result": "WIN",
+      "pnl": 1.1407,
+      "capital_after": 196.88
+    },
+    {
+      "date": "2025-09-02",
+      "desc": "BTC < $116,000",
+      "result": "WIN",
+      "pnl": 1.5955,
+      "capital_after": 205.84
+    },
+    {
+      "date": "2025-09-09",
+      "desc": "BTC < $120,000",
+      "result": "WIN",
+      "pnl": 3.4133,
+      "capital_after": 130.33
+    },
+    {
+      "date": "2025-09-09",
+      "desc": "BTC < $144,000",
+      "result": "WIN",
+      "pnl": 1.6689,
+      "capital_after": 156.3
+    },
+    {
+      "date": "2025-09-09",
+      "desc": "BTC < $134,000",
+      "result": "WIN",
+      "pnl": 1.6282,
+      "capital_after": 182.27
+    },
+    {
+      "date": "2025-09-09",
+      "desc": "BTC < $112,000",
+      "result": "LOSS",
+      "pnl": -5.6115,
+      "capital_after": 182.27
+    },
+    {
+      "date": "2025-09-09",
+      "desc": "BTC < $130,000",
+      "result": "WIN",
+      "pnl": 1.2969,
+      "capital_after": 208.24
+    },
+    {
+      "date": "2025-09-16",
+      "desc": "BTC < $130,000",
+      "result": "WIN",
+      "pnl": 1.274,
+      "capital_after": 145.42
+    },
+    {
+      "date": "2025-09-16",
+      "desc": "BTC < $132,000",
+      "result": "WIN",
+      "pnl": 1.2179,
+      "capital_after": 171.4
+    },
+    {
+      "date": "2025-09-16",
+      "desc": "BTC > $100,000",
+      "result": "WIN",
+      "pnl": 1.3402,
+      "capital_after": 197.37
+    },
+    {
+      "date": "2025-09-16",
+      "desc": "BTC < $116,000",
+      "result": "WIN",
+      "pnl": 1.9791,
+      "capital_after": 204.33
+    },
+    {
+      "date": "2025-09-16",
+      "desc": "BTC < $120,000",
+      "result": "WIN",
+      "pnl": 1.2559,
+      "capital_after": 215.31
+    },
+    {
+      "date": "2025-09-23",
+      "desc": "BTC < $148,000",
+      "result": "WIN",
+      "pnl": 1.8178,
+      "capital_after": 127.62
+    },
+    {
+      "date": "2025-09-23",
+      "desc": "BTC < $132,000",
+      "result": "WIN",
+      "pnl": 1.3786,
+      "capital_after": 154.59
+    },
+    {
+      "date": "2025-09-23",
+      "desc": "BTC < $134,000",
+      "result": "WIN",
+      "pnl": 0.9504,
+      "capital_after": 180.57
+    },
+    {
+      "date": "2025-09-23",
+      "desc": "BTC < $146,000",
+      "result": "WIN",
+      "pnl": 0.8969,
+      "capital_after": 206.56
+    },
+    {
+      "date": "2025-09-23",
+      "desc": "BTC < $124,000",
+      "result": "WIN",
+      "pnl": 1.1819,
+      "capital_after": 221.53
+    },
+    {
+      "date": "2025-09-30",
+      "desc": "BTC < $136,000",
+      "result": "WIN",
+      "pnl": 2.6686,
+      "capital_after": 136.22
+    },
+    {
+      "date": "2025-09-30",
+      "desc": "BTC < $128,000",
+      "result": "WIN",
+      "pnl": 1.9318,
+      "capital_after": 164.18
+    },
+    {
+      "date": "2025-09-30",
+      "desc": "BTC < $148,000",
+      "result": "WIN",
+      "pnl": 1.5641,
+      "capital_after": 192.15
+    },
+    {
+      "date": "2025-09-30",
+      "desc": "BTC < $118,000",
+      "result": "WIN",
+      "pnl": 2.2662,
+      "capital_after": 204.1
+    },
+    {
+      "date": "2025-09-30",
+      "desc": "BTC < $140,000",
+      "result": "WIN",
+      "pnl": 1.114,
+      "capital_after": 231.08
+    },
+    {
+      "date": "2025-10-07",
+      "desc": "BTC < $144,000",
+      "result": "WIN",
+      "pnl": 2.7518,
+      "capital_after": 125.5
+    },
+    {
+      "date": "2025-10-07",
+      "desc": "BTC < $140,000",
+      "result": "WIN",
+      "pnl": 2.1031,
+      "capital_after": 154.46
+    },
+    {
+      "date": "2025-10-07",
+      "desc": "BTC < $134,000",
+      "result": "WIN",
+      "pnl": 1.8644,
+      "capital_after": 183.42
+    },
+    {
+      "date": "2025-10-07",
+      "desc": "BTC < $126,000",
+      "result": "WIN",
+      "pnl": 2.0008,
+      "capital_after": 212.38
+    },
+    {
+      "date": "2025-10-07",
+      "desc": "BTC < $146,000",
+      "result": "WIN",
+      "pnl": 1.5546,
+      "capital_after": 241.35
+    },
+    {
+      "date": "2025-10-14",
+      "desc": "BTC < $158,000",
+      "result": "WIN",
+      "pnl": 3.7381,
+      "capital_after": 147.34
+    },
+    {
+      "date": "2025-10-14",
+      "desc": "BTC < $156,000",
+      "result": "WIN",
+      "pnl": 2.3909,
+      "capital_after": 178.3
+    },
+    {
+      "date": "2025-10-14",
+      "desc": "BTC < $164,000",
+      "result": "WIN",
+      "pnl": 2.4122,
+      "capital_after": 209.25
+    },
+    {
+      "date": "2025-10-14",
+      "desc": "BTC < $130,000",
+      "result": "WIN",
+      "pnl": 3.9451,
+      "capital_after": 225.17
+    },
+    {
+      "date": "2025-10-14",
+      "desc": "BTC < $144,000",
+      "result": "WIN",
+      "pnl": 2.2815,
+      "capital_after": 256.12
+    },
+    {
+      "date": "2025-10-21",
+      "desc": "BTC < $134,000",
+      "result": "WIN",
+      "pnl": 3.0012,
+      "capital_after": 183.89
+    },
+    {
+      "date": "2025-10-21",
+      "desc": "BTC < $142,000",
+      "result": "WIN",
+      "pnl": 1.7593,
+      "capital_after": 215.86
+    },
+    {
+      "date": "2025-10-21",
+      "desc": "BTC < $128,000",
+      "result": "WIN",
+      "pnl": 1.617,
+      "capital_after": 237.82
+    },
+    {
+      "date": "2025-10-21",
+      "desc": "BTC < $126,000",
+      "result": "WIN",
+      "pnl": 1.5852,
+      "capital_after": 253.79
+    },
+    {
+      "date": "2025-10-21",
+      "desc": "BTC < $124,000",
+      "result": "WIN",
+      "pnl": 1.6758,
+      "capital_after": 265.76
+    },
+    {
+      "date": "2025-10-28",
+      "desc": "BTC < $132,000",
+      "result": "WIN",
+      "pnl": 2.1825,
+      "capital_after": 165.23
+    },
+    {
+      "date": "2025-10-28",
+      "desc": "BTC < $128,000",
+      "result": "WIN",
+      "pnl": 2.0925,
+      "capital_after": 199.18
+    },
+    {
+      "date": "2025-10-28",
+      "desc": "BTC < $130,000",
+      "result": "WIN",
+      "pnl": 1.7043,
+      "capital_after": 232.15
+    },
+    {
+      "date": "2025-10-28",
+      "desc": "BTC < $116,000",
+      "result": "WIN",
+      "pnl": 2.9084,
+      "capital_after": 243.09
+    },
+    {
+      "date": "2025-10-28",
+      "desc": "BTC < $146,000",
+      "result": "WIN",
+      "pnl": 1.4165,
+      "capital_after": 276.06
+    },
+    {
+      "date": "2025-11-04",
+      "desc": "BTC < $128,000",
+      "result": "WIN",
+      "pnl": 3.1423,
+      "capital_after": 174.21
+    },
+    {
+      "date": "2025-11-04",
+      "desc": "BTC < $140,000",
+      "result": "WIN",
+      "pnl": 1.8385,
+      "capital_after": 209.17
+    },
+    {
+      "date": "2025-11-04",
+      "desc": "BTC < $138,000",
+      "result": "WIN",
+      "pnl": 1.4528,
+      "capital_after": 243.14
+    },
+    {
+      "date": "2025-11-04",
+      "desc": "BTC < $148,000",
+      "result": "WIN",
+      "pnl": 1.3861,
+      "capital_after": 277.11
+    },
+    {
+      "date": "2025-11-04",
+      "desc": "BTC < $120,000",
+      "result": "WIN",
+      "pnl": 2.1891,
+      "capital_after": 286.07
+    },
+    {
+      "date": "2025-11-11",
+      "desc": "BTC < $114,000",
+      "result": "WIN",
+      "pnl": 4.5125,
+      "capital_after": 171.24
+    },
+    {
+      "date": "2025-11-11",
+      "desc": "BTC > $92,000",
+      "result": "WIN",
+      "pnl": 2.3461,
+      "capital_after": 207.19
+    },
+    {
+      "date": "2025-11-11",
+      "desc": "BTC < $136,000",
+      "result": "WIN",
+      "pnl": 1.6864,
+      "capital_after": 243.16
+    },
+    {
+      "date": "2025-11-11",
+      "desc": "BTC < $116,000",
+      "result": "WIN",
+      "pnl": 2.2187,
+      "capital_after": 263.11
+    },
+    {
+      "date": "2025-11-11",
+      "desc": "BTC < $130,000",
+      "result": "WIN",
+      "pnl": 1.2519,
+      "capital_after": 298.09
+    },
+    {
+      "date": "2025-11-18",
+      "desc": "BTC < $116,000",
+      "result": "WIN",
+      "pnl": 5.0215,
+      "capital_after": 161.43
+    },
+    {
+      "date": "2025-11-18",
+      "desc": "BTC < $140,000",
+      "result": "WIN",
+      "pnl": 3.2907,
+      "capital_after": 200.37
+    },
+    {
+      "date": "2025-11-18",
+      "desc": "BTC < $120,000",
+      "result": "WIN",
+      "pnl": 2.4467,
+      "capital_after": 238.32
+    },
+    {
+      "date": "2025-11-18",
+      "desc": "BTC < $128,000",
+      "result": "WIN",
+      "pnl": 1.7006,
+      "capital_after": 275.28
+    },
+    {
+      "date": "2025-11-18",
+      "desc": "BTC < $126,000",
+      "result": "WIN",
+      "pnl": 1.7006,
+      "capital_after": 312.25
+    },
+    {
+      "date": "2025-11-25",
+      "desc": "BTC < $102,000",
+      "result": "WIN",
+      "pnl": 3.7421,
+      "capital_after": 238.3
+    },
+    {
+      "date": "2025-11-25",
+      "desc": "BTC < $122,000",
+      "result": "WIN",
+      "pnl": 1.9454,
+      "capital_after": 277.26
+    },
+    {
+      "date": "2025-11-25",
+      "desc": "BTC < $104,000",
+      "result": "WIN",
+      "pnl": 1.8591,
+      "capital_after": 312.22
+    },
+    {
+      "date": "2025-11-25",
+      "desc": "BTC < $94,000",
+      "result": "WIN",
+      "pnl": 3.1368,
+      "capital_after": 320.16
+    },
+    {
+      "date": "2025-11-25",
+      "desc": "BTC < $92,000",
+      "result": "WIN",
+      "pnl": 3.1658,
+      "capital_after": 326.1
+    },
+    {
+      "date": "2025-12-02",
+      "desc": "BTC < $94,000",
+      "result": "WIN",
+      "pnl": 4.2434,
+      "capital_after": 218.55
+    },
+    {
+      "date": "2025-12-02",
+      "desc": "BTC < $110,000",
+      "result": "WIN",
+      "pnl": 2.2903,
+      "capital_after": 259.51
+    },
+    {
+      "date": "2025-12-02",
+      "desc": "BTC < $114,000",
+      "result": "WIN",
+      "pnl": 2.1054,
+      "capital_after": 300.46
+    },
+    {
+      "date": "2025-12-02",
+      "desc": "BTC < $98,000",
+      "result": "WIN",
+      "pnl": 2.4811,
+      "capital_after": 329.41
+    },
+    {
+      "date": "2025-12-02",
+      "desc": "BTC < $92,000",
+      "result": "WIN",
+      "pnl": 3.1327,
+      "capital_after": 340.35
+    },
+    {
+      "date": "2025-12-09",
+      "desc": "BTC < $102,000",
+      "result": "WIN",
+      "pnl": 2.7855,
+      "capital_after": 195.91
+    },
+    {
+      "date": "2025-12-09",
+      "desc": "BTC < $116,000",
+      "result": "WIN",
+      "pnl": 2.2292,
+      "capital_after": 238.87
+    },
+    {
+      "date": "2025-12-09",
+      "desc": "BTC < $114,000",
+      "result": "WIN",
+      "pnl": 2.1239,
+      "capital_after": 281.83
+    },
+    {
+      "date": "2025-12-09",
+      "desc": "BTC < $104,000",
+      "result": "WIN",
+      "pnl": 1.9469,
+      "capital_after": 323.79
+    },
+    {
+      "date": "2025-12-09",
+      "desc": "BTC < $96,000",
+      "result": "WIN",
+      "pnl": 2.305,
+      "capital_after": 351.74
+    },
+    {
+      "date": "2025-12-16",
+      "desc": "BTC < $116,000",
+      "result": "WIN",
+      "pnl": 3.431,
+      "capital_after": 197.08
+    },
+    {
+      "date": "2025-12-16",
+      "desc": "BTC < $104,000",
+      "result": "WIN",
+      "pnl": 4.2285,
+      "capital_after": 243.0
+    },
+    {
+      "date": "2025-12-16",
+      "desc": "BTC < $102,000",
+      "result": "WIN",
+      "pnl": 3.7021,
+      "capital_after": 279.92
+    },
+    {
+      "date": "2025-12-16",
+      "desc": "BTC < $112,000",
+      "result": "WIN",
+      "pnl": 2.4708,
+      "capital_after": 323.87
+    },
+    {
+      "date": "2025-12-16",
+      "desc": "BTC < $110,000",
+      "result": "WIN",
+      "pnl": 2.2552,
+      "capital_after": 367.83
+    },
+    {
+      "date": "2025-12-23",
+      "desc": "BTC < $106,000",
+      "result": "WIN",
+      "pnl": 3.0169,
+      "capital_after": 287.01
+    },
+    {
+      "date": "2025-12-23",
+      "desc": "BTC < $102,000",
+      "result": "WIN",
+      "pnl": 1.7287,
+      "capital_after": 331.97
+    },
+    {
+      "date": "2025-12-23",
+      "desc": "BTC < $100,000",
+      "result": "WIN",
+      "pnl": 1.3706,
+      "capital_after": 373.94
+    },
+    {
+      "date": "2025-12-30",
+      "desc": "BTC < $110,000",
+      "result": "WIN",
+      "pnl": 3.8432,
+      "capital_after": 201.22
+    },
+    {
+      "date": "2025-12-30",
+      "desc": "BTC < $112,000",
+      "result": "WIN",
+      "pnl": 3.481,
+      "capital_after": 249.15
+    },
+    {
+      "date": "2025-12-30",
+      "desc": "BTC < $116,000",
+      "result": "WIN",
+      "pnl": 3.274,
+      "capital_after": 297.08
+    },
+    {
+      "date": "2025-12-30",
+      "desc": "BTC < $106,000",
+      "result": "WIN",
+      "pnl": 3.2881,
+      "capital_after": 345.01
+    },
+    {
+      "date": "2025-12-30",
+      "desc": "BTC < $100,000",
+      "result": "WIN",
+      "pnl": 3.1195,
+      "capital_after": 390.95
+    },
+    {
+      "date": "2026-01-06",
+      "desc": "BTC < $96,000",
+      "result": "WIN",
+      "pnl": 6.0217,
+      "capital_after": 238.23
+    },
+    {
+      "date": "2026-01-06",
+      "desc": "BTC < $110,000",
+      "result": "WIN",
+      "pnl": 3.9102,
+      "capital_after": 288.15
+    },
+    {
+      "date": "2026-01-06",
+      "desc": "BTC < $92,000",
+      "result": "LOSS",
+      "pnl": -19.3425,
+      "capital_after": 288.15
+    },
+    {
+      "date": "2026-01-06",
+      "desc": "BTC < $104,000",
+      "result": "WIN",
+      "pnl": 2.377,
+      "capital_after": 337.1
+    },
+    {
+      "date": "2026-01-06",
+      "desc": "BTC < $114,000",
+      "result": "WIN",
+      "pnl": 2.1465,
+      "capital_after": 386.06
+    },
+    {
+      "date": "2026-01-13",
+      "desc": "BTC < $100,000",
+      "result": "WIN",
+      "pnl": 7.7142,
+      "capital_after": 249.61
+    },
+    {
+      "date": "2026-01-13",
+      "desc": "BTC < $120,000",
+      "result": "WIN",
+      "pnl": 4.1062,
+      "capital_after": 299.53
+    },
+    {
+      "date": "2026-01-13",
+      "desc": "BTC < $102,000",
+      "result": "WIN",
+      "pnl": 3.7661,
+      "capital_after": 344.45
+    },
+    {
+      "date": "2026-01-13",
+      "desc": "BTC < $110,000",
+      "result": "WIN",
+      "pnl": 2.9052,
+      "capital_after": 393.39
+    },
+    {
+      "date": "2026-01-13",
+      "desc": "BTC < $96,000",
+      "result": "WIN",
+      "pnl": 6.6997,
+      "capital_after": 411.25
+    },
+    {
+      "date": "2026-01-20",
+      "desc": "BTC < $106,000",
+      "result": "WIN",
+      "pnl": 3.0678,
+      "capital_after": 221.94
+    },
+    {
+      "date": "2026-01-20",
+      "desc": "BTC < $118,000",
+      "result": "WIN",
+      "pnl": 2.92,
+      "capital_after": 273.88
+    },
+    {
+      "date": "2026-01-20",
+      "desc": "BTC < $110,000",
+      "result": "WIN",
+      "pnl": 2.2391,
+      "capital_after": 324.83
+    },
+    {
+      "date": "2026-01-20",
+      "desc": "BTC < $100,000",
+      "result": "WIN",
+      "pnl": 2.3708,
+      "capital_after": 372.78
+    },
+    {
+      "date": "2026-01-20",
+      "desc": "BTC < $102,000",
+      "result": "WIN",
+      "pnl": 1.8942,
+      "capital_after": 423.74
+    },
+    {
+      "date": "2026-01-27",
+      "desc": "BTC < $118,000",
+      "result": "WIN",
+      "pnl": 4.5653,
+      "capital_after": 267.36
+    },
+    {
+      "date": "2026-01-27",
+      "desc": "BTC < $120,000",
+      "result": "WIN",
+      "pnl": 4.2743,
+      "capital_after": 322.27
+    },
+    {
+      "date": "2026-01-27",
+      "desc": "BTC < $108,000",
+      "result": "WIN",
+      "pnl": 2.6957,
+      "capital_after": 375.22
+    },
+    {
+      "date": "2026-01-27",
+      "desc": "BTC < $94,000",
+      "result": "WIN",
+      "pnl": 6.6185,
+      "capital_after": 391.08
+    },
+    {
+      "date": "2026-01-27",
+      "desc": "BTC < $122,000",
+      "result": "WIN",
+      "pnl": 2.1399,
+      "capital_after": 444.04
+    },
+    {
+      "date": "2026-02-03",
+      "desc": "BTC < $116,000",
+      "result": "WIN",
+      "pnl": 4.061,
+      "capital_after": 236.32
+    },
+    {
+      "date": "2026-02-03",
+      "desc": "BTC < $100,000",
+      "result": "WIN",
+      "pnl": 3.1721,
+      "capital_after": 292.25
+    },
+    {
+      "date": "2026-02-03",
+      "desc": "BTC < $112,000",
+      "result": "WIN",
+      "pnl": 2.9196,
+      "capital_after": 348.19
+    },
+    {
+      "date": "2026-02-03",
+      "desc": "BTC < $104,000",
+      "result": "WIN",
+      "pnl": 2.7166,
+      "capital_after": 404.14
+    },
+    {
+      "date": "2026-02-03",
+      "desc": "BTC < $98,000",
+      "result": "WIN",
+      "pnl": 3.1666,
+      "capital_after": 460.07
+    },
+    {
+      "date": "2026-02-10",
+      "desc": "BTC < $94,000",
+      "result": "WIN",
+      "pnl": 5.1979,
+      "capital_after": 249.5
+    },
+    {
+      "date": "2026-02-10",
+      "desc": "BTC < $106,000",
+      "result": "WIN",
+      "pnl": 4.614,
+      "capital_after": 308.41
+    },
+    {
+      "date": "2026-02-10",
+      "desc": "BTC < $92,000",
+      "result": "WIN",
+      "pnl": 3.8508,
+      "capital_after": 367.33
+    },
+    {
+      "date": "2026-02-10",
+      "desc": "BTC < $96,000",
+      "result": "WIN",
+      "pnl": 2.4411,
+      "capital_after": 424.28
+    },
+    {
+      "date": "2026-02-10",
+      "desc": "BTC < $90,000",
+      "result": "WIN",
+      "pnl": 3.04,
+      "capital_after": 479.22
+    },
+    {
+      "date": "2026-02-17",
+      "desc": "BTC < $74,000",
+      "result": "WIN",
+      "pnl": 7.6702,
+      "capital_after": 354.74
+    },
+    {
+      "date": "2026-02-17",
+      "desc": "BTC < $92,000",
+      "result": "WIN",
+      "pnl": 3.0517,
+      "capital_after": 414.68
+    },
+    {
+      "date": "2026-02-17",
+      "desc": "BTC < $76,000",
+      "result": "WIN",
+      "pnl": 4.8545,
+      "capital_after": 432.58
+    },
+    {
+      "date": "2026-02-17",
+      "desc": "BTC < $78,000",
+      "result": "WIN",
+      "pnl": 3.832,
+      "capital_after": 451.5
+    },
+    {
+      "date": "2026-02-17",
+      "desc": "BTC < $88,000",
+      "result": "WIN",
+      "pnl": 2.8175,
+      "capital_after": 501.44
+    },
+    {
+      "date": "2026-02-24",
+      "desc": "BTC < $88,000",
+      "result": "WIN",
+      "pnl": 6.164,
+      "capital_after": 370.1
+    },
+    {
+      "date": "2026-02-24",
+      "desc": "BTC < $92,000",
+      "result": "WIN",
+      "pnl": 2.6856,
+      "capital_after": 432.04
+    },
+    {
+      "date": "2026-02-24",
+      "desc": "BTC < $78,000",
+      "result": "WIN",
+      "pnl": 2.6106,
+      "capital_after": 448.99
+    },
+    {
+      "date": "2026-02-24",
+      "desc": "BTC < $90,000",
+      "result": "WIN",
+      "pnl": 2.1581,
+      "capital_after": 509.94
+    },
+    {
+      "date": "2026-02-24",
+      "desc": "BTC < $72,000",
+      "result": "WIN",
+      "pnl": 2.8248,
+      "capital_after": 517.89
+    },
+    {
+      "date": "2026-02-24",
+      "desc": "BTC < $66,000",
+      "result": "WIN",
+      "pnl": 13.6624,
+      "capital_after": 512.98
+    },
+    {
+      "date": "2026-02-24",
+      "desc": "BTC > $60,000",
+      "result": "WIN",
+      "pnl": 5.3745,
+      "capital_after": 529.87
+    },
+    {
+      "date": "2026-02-24",
+      "desc": "BTC < $62,000",
+      "result": "LOSS",
+      "pnl": -7.0518,
+      "capital_after": 529.87
+    }
+  ]
+}

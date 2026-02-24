@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BTC Options Surface & Matrix | Live Dashboard</title>
+    <meta name="description"
+        content="Real-time BTC Options Volatility Surface and Options Matrix from Deribit exchange data.">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet">
+
+    <!-- Plotly for 3D surface -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header id="main-header">
+        <div class="header-left">
+            <div class="logo-container">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 32 32" fill="none">
+                        <path d="M16 2L2 9L16 16L30 9L16 2Z" fill="url(#grad1)" opacity="0.9" />
+                        <path d="M2 9V23L16 30V16L2 9Z" fill="url(#grad2)" opacity="0.7" />
+                        <path d="M30 9V23L16 30V16L30 9Z" fill="url(#grad3)" opacity="0.8" />
+                        <defs>
+                            <linearGradient id="grad1" x1="2" y1="2" x2="30" y2="16">
+                                <stop offset="0%" stop-color="#f7931a" />
+                                <stop offset="100%" stop-color="#ffb347" />
+                            </linearGradient>
+                            <linearGradient id="grad2" x1="2" y1="9" x2="16" y2="30">
+                                <stop offset="0%" stop-color="#f7931a" />
+                                <stop offset="100%" stop-color="#e8650a" />
+                            </linearGradient>
+                            <linearGradient id="grad3" x1="30" y1="9" x2="16" y2="30">
+                                <stop offset="0%" stop-color="#ffb347" />
+                                <stop offset="100%" stop-color="#f7931a" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <div class="logo-text">
+                    <h1>BTC Options</h1>
+                    <span class="subtitle">Volatility Surface & Matrix</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-center">
+            <div class="spot-display" id="spot-display">
+                <span class="spot-label">BTC/USD</span>
+                <span class="spot-price" id="spot-price">Loading...</span>
+                <span class="spot-badge live-badge" id="live-badge">
+                    <span class="pulse-dot"></span> LIVE
+                </span>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="info-chips">
+                <div class="chip" id="total-options-chip">
+                    <span class="chip-label">Options</span>
+                    <span class="chip-value" id="total-options">—</span>
+                </div>
+                <div class="chip" id="expiries-chip">
+                    <span class="chip-label">Expiries</span>
+                    <span class="chip-value" id="total-expiries">—</span>
+                </div>
+                <div class="chip" id="last-update-chip">
+                    <span class="chip-label">Updated</span>
+                    <span class="chip-value" id="last-update">—</span>
+                </div>
+            </div>
+            <button class="refresh-btn" id="refresh-btn" title="Refresh Data">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 4v6h-6M1 20v-6h6" />
+                    <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav id="main-nav">
+        <button class="nav-tab active" data-tab="surface" id="tab-surface">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M2 20L8.5 13.5L13 17L22 6" />
+                <path d="M16 6h6v6" />
+            </svg>
+            <span>Volatility Surface</span>
+        </button>
+        <button class="nav-tab" data-tab="matrix" id="tab-matrix">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" />
+            </svg>
+            <span>Options Matrix</span>
+        </button>
+        <button class="nav-tab" data-tab="smiles" id="tab-smiles">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+            </svg>
+            <span>Vol Smiles</span>
+        </button>
+        <button class="nav-tab" data-tab="heatmap" id="tab-heatmap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="2" width="20" height="20" rx="2" />
+                <path d="M7 2v20M12 2v20M17 2v20M2 7h20M2 12h20M2 17h20" />
+            </svg>
+            <span>IV Heatmap</span>
+        </button>
+        <button class="nav-tab" data-tab="probability" id="tab-probability">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v20M2 12h20" />
+                <path d="M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" />
+                <circle cx="12" cy="12" r="9" />
+            </svg>
+            <span>Probabilité</span>
+        </button>
+        <button class="nav-tab" data-tab="strategy" id="tab-strategy">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                <path d="M2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+            <span>💰 Stratégie</span>
+        </button>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="main-content">
+        <!-- Loading State -->
+        <div class="loading-overlay" id="loading-overlay">
+            <div class="loading-spinner">
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+            </div>
+            <p class="loading-text">Fetching live options data from Deribit...</p>
+        </div>
+
+        <!-- Tab: Volatility Surface -->
+        <section class="tab-content active" id="content-surface">
+            <div class="surface-controls">
+                <div class="control-group">
+                    <label>Surface Type</label>
+                    <select id="surface-type">
+                        <option value="calls">Calls Only</option>
+                        <option value="puts">Puts Only</option>
+                        <option value="both">Calls & Puts</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Color Scheme</label>
+                    <select id="surface-colorscale">
+                        <option value="Viridis">Viridis</option>
+                        <option value="Plasma">Plasma</option>
+                        <option value="Inferno">Inferno</option>
+                        <option value="Magma">Magma</option>
+                        <option value="Hot">Hot</option>
+                        <option value="Jet" selected>Jet</option>
+                        <option value="YlOrRd">YlOrRd</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>X-Axis</label>
+                    <select id="surface-xaxis">
+                        <option value="moneyness" selected>Moneyness (K/S)</option>
+                        <option value="strike">Strike ($)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="chart-container" id="surface-chart-container">
+                <div id="surface-chart" style="width:100%;height:100%;"></div>
+            </div>
+        </section>
+
+        <!-- Tab: Options Matrix -->
+        <section class="tab-content" id="content-matrix">
+            <div class="matrix-controls">
+                <div class="control-group">
+                    <label>Expiry</label>
+                    <select id="matrix-expiry"></select>
+                </div>
+                <div class="control-group">
+                    <label>Display</label>
+                    <select id="matrix-display">
+                        <option value="iv">Implied Volatility</option>
+                        <option value="mark_usd">Mark Price (USD)</option>
+                        <option value="delta">Delta</option>
+                        <option value="gamma">Gamma</option>
+                        <option value="vega">Vega</option>
+                        <option value="theta">Theta</option>
+                        <option value="volume">Volume</option>
+                        <option value="open_interest">Open Interest</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Show All Expiries</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="matrix-all-expiries">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="matrix-wrapper" id="matrix-wrapper">
+                <div id="options-matrix-table"></div>
+            </div>
+        </section>
+
+        <!-- Tab: Vol Smiles -->
+        <section class="tab-content" id="content-smiles">
+            <div class="smiles-controls">
+                <div class="control-group">
+                    <label>Select Expiries</label>
+                    <div class="expiry-checkboxes" id="smile-expiry-checkboxes"></div>
+                </div>
+            </div>
+            <div class="chart-container" id="smile-chart-container">
+                <div id="smile-chart" style="width:100%;height:100%;"></div>
+            </div>
+        </section>
+
+        <!-- Tab: IV Heatmap -->
+        <section class="tab-content" id="content-heatmap">
+            <div class="heatmap-controls">
+                <div class="control-group">
+                    <label>Option Type</label>
+                    <select id="heatmap-type">
+                        <option value="C">Calls</option>
+                        <option value="P">Puts</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Color Scheme</label>
+                    <select id="heatmap-colorscale">
+                        <option value="Viridis">Viridis</option>
+                        <option value="Plasma" selected>Plasma</option>
+                        <option value="Inferno">Inferno</option>
+                        <option value="Hot">Hot</option>
+                        <option value="YlOrRd">YlOrRd</option>
+                    </select>
+                </div>
+            </div>
+            <div class="chart-container" id="heatmap-chart-container">
+                <div id="heatmap-chart" style="width:100%;height:100%;"></div>
+            </div>
+        </section>
+
+        <!-- Tab: Probability Calculator -->
+        <section class="tab-content" id="content-probability">
+            <div class="proba-layout">
+                <!-- Input Panel -->
+                <div class="proba-input-panel">
+                    <div class="proba-card">
+                        <div class="proba-card-header">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                style="width:20px;height:20px;color:var(--accent)">
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M12 6v6l4 2" />
+                            </svg>
+                            <h2>Calculateur de Probabilité</h2>
+                        </div>
+                        <p class="proba-subtitle">Probabilité implicite extraite de la surface de volatilité des options
+                            BTC (Deribit)</p>
+
+                        <div class="proba-form">
+                            <div class="proba-field">
+                                <label for="proba-target-price">Prix Cible du BTC ($)</label>
+                                <div class="proba-input-wrapper">
+                                    <span class="proba-input-prefix">$</span>
+                                    <input type="number" id="proba-target-price" placeholder="100000" min="1" step="500"
+                                        value="100000">
+                                </div>
+                                <span class="proba-field-hint">Le prix que vous voulez tester</span>
+                            </div>
+
+                            <div class="proba-field">
+                                <label for="proba-target-date">Date Cible</label>
+                                <input type="date" id="proba-target-date">
+                                <span class="proba-field-hint">La date à laquelle évaluer la probabilité</span>
+                            </div>
+
+                            <div class="proba-field">
+                                <label>Scénario</label>
+                                <div class="proba-scenario-btns">
+                                    <button class="scenario-btn active" id="scenario-above" data-scenario="above">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                                            style="width:18px;height:18px">
+                                            <path d="M12 19V5M5 12l7-7 7 7" />
+                                        </svg>
+                                        AU-DESSUS
+                                    </button>
+                                    <button class="scenario-btn" id="scenario-below" data-scenario="below">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                                            style="width:18px;height:18px">
+                                            <path d="M12 5v14M19 12l-7 7-7-7" />
+                                        </svg>
+                                        EN-DESSOUS
+                                    </button>
+                                </div>
+                                <span class="proba-field-hint">Le BTC sera-t-il au-dessus ou en-dessous du prix cible
+                                    ?</span>
+                            </div>
+
+                            <button class="proba-calculate-btn" id="proba-calculate-btn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    style="width:20px;height:20px">
+                                    <path
+                                        d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2v-4M9 21H5a2 2 0 01-2-2v-4" />
+                                </svg>
+                                CALCULER LA PROBABILITÉ
+                            </button>
+                        </div>
+
+                        <!-- Quick Presets -->
+                        <div class="proba-presets">
+                            <span class="proba-presets-label">Scénarios rapides :</span>
+                            <button class="preset-btn" data-price="100000" data-scenario="above">BTC > $100k</button>
+                            <button class="preset-btn" data-price="150000" data-scenario="above">BTC > $150k</button>
+                            <button class="preset-btn" data-price="200000" data-scenario="above">BTC > $200k</button>
+                            <button class="preset-btn" data-price="50000" data-scenario="below">BTC < $50k</button>
+                                    <button class="preset-btn" data-price="40000" data-scenario="below">BTC <
+                                            $40k</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Panel -->
+                <div class="proba-results-panel" id="proba-results-panel">
+                    <!-- Placeholder state -->
+                    <div class="proba-placeholder" id="proba-placeholder">
+                        <div class="proba-placeholder-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                                style="width:48px;height:48px;color:var(--text-muted)">
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M12 6v6l4 2" />
+                            </svg>
+                        </div>
+                        <p>Entrez vos paramètres et cliquez<br><strong>"Calculer la Probabilité"</strong></p>
+                    </div>
+
+                    <!-- Loading state -->
+                    <div class="proba-loading hidden" id="proba-loading">
+                        <div class="loading-spinner" style="transform:scale(0.7)">
+                            <div class="spinner-ring"></div>
+                            <div class="spinner-ring"></div>
+                            <div class="spinner-ring"></div>
+                        </div>
+                        <p>Interpolation de la surface de vol...</p>
+                    </div>
+
+                    <!-- Results -->
+                    <div class="proba-result hidden" id="proba-result">
+                        <!-- Main probability display -->
+                        <div class="proba-main-result" id="proba-main-result">
+                            <div class="proba-scenario-label" id="proba-scenario-label"></div>
+                            <div class="proba-big-number" id="proba-big-number">—</div>
+                            <div class="proba-big-sublabel">Probabilité Risk-Neutral (Options Market)</div>
+                        </div>
+
+                        <!-- Secondary probabilities -->
+                        <div class="proba-secondary-row">
+                            <div class="proba-secondary-card" id="proba-rw-card">
+                                <span class="proba-sec-label">Probabilité Real-World</span>
+                                <span class="proba-sec-value" id="proba-rw-value">—</span>
+                                <span class="proba-sec-hint">Drift μ = 10%/an</span>
+                            </div>
+                            <div class="proba-secondary-card">
+                                <span class="proba-sec-label">IV Interpolée</span>
+                                <span class="proba-sec-value" id="proba-iv-value">—</span>
+                                <span class="proba-sec-hint" id="proba-iv-method">—</span>
+                            </div>
+                            <div class="proba-secondary-card">
+                                <span class="proba-sec-label">Moneyness</span>
+                                <span class="proba-sec-value" id="proba-moneyness-value">—</span>
+                                <span class="proba-sec-hint" id="proba-dte-display">—</span>
+                            </div>
+                        </div>
+
+                        <!-- 4 quadrant probabilities -->
+                        <div class="proba-quad-grid">
+                            <div class="proba-quad above-rn">
+                                <span class="quad-label">P(Above) Risk-Neutral</span>
+                                <span class="quad-value" id="quad-above-rn">—</span>
+                            </div>
+                            <div class="proba-quad below-rn">
+                                <span class="quad-label">P(Below) Risk-Neutral</span>
+                                <span class="quad-value" id="quad-below-rn">—</span>
+                            </div>
+                            <div class="proba-quad above-rw">
+                                <span class="quad-label">P(Above) Real-World</span>
+                                <span class="quad-value" id="quad-above-rw">—</span>
+                            </div>
+                            <div class="proba-quad below-rw">
+                                <span class="quad-label">P(Below) Real-World</span>
+                                <span class="quad-value" id="quad-below-rw">—</span>
+                            </div>
+                        </div>
+
+                        <!-- BS Parameters -->
+                        <div class="proba-params-card">
+                            <h4>Paramètres Black-Scholes</h4>
+                            <div class="proba-params-grid" id="proba-params-grid"></div>
+                        </div>
+
+                        <!-- Nearby Options -->
+                        <div class="proba-nearby-card">
+                            <h4>Options les plus proches (utilisées pour l'interpolation)</h4>
+                            <div id="proba-nearby-table"></div>
+                        </div>
+
+                        <!-- Probability distribution chart -->
+                        <div class="proba-chart-card">
+                            <div id="proba-dist-chart" style="width:100%;height:280px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Error state -->
+                    <div class="proba-error hidden" id="proba-error">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            style="width:32px;height:32px;color:var(--red)">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="15" y1="9" x2="9" y2="15" />
+                            <line x1="9" y1="9" x2="15" y2="15" />
+                        </svg>
+                        <p id="proba-error-msg"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab: Strategy -->
+        <section class="tab-content" id="content-strategy">
+            <!-- Strategy Header -->
+            <div class="strategy-header-bar">
+                <div class="strategy-title-group">
+                    <h2 class="strategy-title">💰 Polymarket ↔ Options Arbitrage</h2>
+                    <p class="strategy-desc">Convergence trading: acheter les mispricings entre les paris Polymarket et
+                        la probabilité implicite des options BTC</p>
+                </div>
+                <button class="strategy-scan-btn" id="strategy-scan-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        style="width:18px;height:18px">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="M21 21l-4.35-4.35" />
+                    </svg>
+                    SCANNER LES OPPORTUNITÉS
+                </button>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="strategy-summary" id="strategy-summary" style="display:none">
+                <div class="strat-summary-card">
+                    <span class="strat-sum-label">Marchés Scannés</span>
+                    <span class="strat-sum-value" id="strat-total-markets">0</span>
+                </div>
+                <div class="strat-summary-card highlight">
+                    <span class="strat-sum-label">🎯 Trades Grade A</span>
+                    <span class="strat-sum-value" id="strat-grade-a">0</span>
+                </div>
+                <div class="strat-summary-card">
+                    <span class="strat-sum-label">📊 Taux de Victoire</span>
+                    <span class="strat-sum-value" id="strat-win-rate">0%</span>
+                </div>
+                <div class="strat-summary-card">
+                    <span class="strat-sum-label">Exposition Totale</span>
+                    <span class="strat-sum-value" id="strat-total-exposure">$0</span>
+                </div>
+                <div class="strat-summary-card">
+                    <span class="strat-sum-label">💰 P&L Attendu</span>
+                    <span class="strat-sum-value" id="strat-expected-pnl">$0</span>
+                </div>
+            </div>
+
+            <!-- Strategy Loading -->
+            <div class="strategy-loading hidden" id="strategy-loading">
+                <div class="loading-spinner" style="transform:scale(0.7)">
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-ring"></div>
+                </div>
+                <p>Scan des marchés Polymarket et calcul des probabilités options...</p>
+            </div>
+
+            <!-- Strategy Placeholder -->
+            <div class="strategy-placeholder" id="strategy-placeholder">
+                <div style="font-size:3rem;margin-bottom:12px">📊</div>
+                <p>Cliquez <strong>"Scanner les Opportunités"</strong> pour analyser<br>les mispricings entre Polymarket
+                    et le marché des options</p>
+            </div>
+
+            <!-- Opportunities Table -->
+            <div class="strategy-results hidden" id="strategy-results">
+                <!-- Edge distribution chart -->
+                <div class="strategy-chart-card">
+                    <div id="strategy-edge-chart" style="width:100%;height:300px;"></div>
+                </div>
+
+                <!-- Opportunities table -->
+                <div class="strategy-table-wrapper">
+                    <table class="strategy-table" id="strategy-table">
+                        <thead>
+                            <tr>
+                                <th>Grade</th>
+                                <th>Pari</th>
+                                <th>Strike</th>
+                                <th>DTE</th>
+                                <th>🏆 Win Rate</th>
+                                <th>💰 Si Victoire</th>
+                                <th>Edge</th>
+                                <th>Coût</th>
+                                <th>Position</th>
+                                <th>E[PnL]</th>
+                            </tr>
+                        </thead>
+                        <tbody id="strategy-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Error -->
+            <div class="strategy-error hidden" id="strategy-error">
+                <p id="strategy-error-msg"></p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer id="main-footer">
+        <span>Data Source: <strong>Deribit Exchange</strong> (Public API)</span>
+        <span>•</span>
+        <span>Auto-refresh: <strong>30s</strong></span>
+        <span>•</span>
+        <span id="footer-timestamp"></span>
+    </footer>
+
+    <script src="/static/js/app.js"></script>
+</body>
+
+</html>
