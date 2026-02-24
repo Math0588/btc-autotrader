@@ -60,7 +60,7 @@ CONFIG = {
     "risk_free_rate": 0.045,
     "btc_drift_real": 0.10,
     "min_dte": 2,
-    "max_dte": 30,
+    "max_dte": 45,                  # Only change: extend time horizon slightly for longer trades
     "min_liquidity": 5000,
     "min_volume": 1000,
     "min_win_prob": 0.15,           # Don't take <15% win prob bets
