@@ -20,3 +20,5 @@ services:
         sync: false
       - key: PYTHON_VERSION
         value: "3.11.0"
+      - key: RENDER_EXTERNAL_URL
+        generateValue: false  # Auto-set by Render at runtime

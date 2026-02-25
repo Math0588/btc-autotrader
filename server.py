@@ -57,7 +57,11 @@ CONFIG = {
     "min_volume": 500,
     "min_win_prob": 0.25,                                     # Cut absolute lotteries, but allow 25% if heavily mispriced
     "stop_loss_prob": 0.10,                                   # THESIS INVALIDATION: If our model says < 10% chance, cut loss and run!
-    "max_drawdown_pct": 50,                                   
+    "max_drawdown_pct": 50,
+    "take_profit_pct": 20.0,                                  # Take profit at +20% unrealized
+    "stop_loss_pct": 30.0,                                    # Stop loss at -30% unrealized
+    "keepalive_interval": int(os.getenv("KEEPALIVE_INTERVAL", "600")),  # 10 min self-ping
+    "heartbeat_interval": int(os.getenv("HEARTBEAT_INTERVAL", "7200")),  # 2h Telegram heartbeat
     "telegram_token": os.getenv("TELEGRAM_TOKEN", ""),
     "telegram_chat": os.getenv("TELEGRAM_CHAT", ""),
 }
@@ -348,37 +352,208 @@ def parse_market(data, token_type="BTC"):
 
 # ─── Probability Models ──────────────────────────────────────────────────────
 
+
+def one_touch_prob(spot, barrier, dte_days, sigma, r=0.045, scenario="above"):
+    """
+    One-Touch (First Passage Time) probability.
+    Correct model for "Will BTC HIT $X by date?" barrier-style bets.
+
+    For barrier ABOVE spot:
+        P(touch) = N(-d2) + (B/S)^(2μ/σ²) * N(-d1_adj)
+    For barrier BELOW spot:
+        P(touch) = N(d2_down) + (B/S)^(2μ/σ²) * N(d1_adj_down)
+    """
+    T = max(dte_days / 365.0, 1e-6)
+    mu = r - 0.5 * sigma ** 2
+    sigma_sqrt_T = sigma * math.sqrt(T)
+
+    if sigma_sqrt_T < 1e-10:
+        if scenario == "above":
+            return 1.0 if spot >= barrier else 0.0
+        else:
+            return 1.0 if spot <= barrier else 0.0
+
+    log_ratio = math.log(barrier / spot)
+
+    if scenario == "above":
+        if spot >= barrier:
+            return 1.0  # Already touched
+        d1 = (log_ratio - mu * T) / sigma_sqrt_T
+        d2 = (log_ratio + mu * T) / sigma_sqrt_T
+        power = (2 * mu) / (sigma ** 2)
+        try:
+            ratio_term = (barrier / spot) ** power
+        except (OverflowError, ZeroDivisionError):
+            ratio_term = 0.0
+        prob = norm.cdf(-d2) + ratio_term * norm.cdf(-d1)
+    else:
+        if spot <= barrier:
+            return 1.0  # Already touched
+        d1 = (-log_ratio + mu * T) / sigma_sqrt_T
+        d2 = (-log_ratio - mu * T) / sigma_sqrt_T
+        power = (2 * mu) / (sigma ** 2)
+        try:
+            ratio_term = (barrier / spot) ** power
+        except (OverflowError, ZeroDivisionError):
+            ratio_term = 0.0
+        prob = norm.cdf(-d1) + ratio_term * norm.cdf(-d2)
+
+    return max(0.0, min(1.0, prob))
+
+
 def bs_prob(spot, barrier, dte, sigma, r=0.045, scenario="above"):
+    """Standard Black-Scholes European probability (fallback)."""
     T = dte / 365.0
+    if T < 1e-6 or sigma < 1e-6:
+        return (1.0 if spot >= barrier else 0.0) if scenario == "above" else (1.0 if spot <= barrier else 0.0)
     d2 = (math.log(spot/barrier) + (r - 0.5*sigma**2)*T) / (sigma*math.sqrt(T))
     return norm.cdf(d2) if scenario == "above" else norm.cdf(-d2)
 
 
+def _fit_svi_slice(moneyness_arr, iv_arr):
+    """
+    Fit SVI (Stochastic Volatility Inspired) parameterisation to a vol slice.
+    SVI model: w(k) = a + b * (ρ*(k-m) + sqrt((k-m)² + σ²))
+    where k = log(moneyness), w = total_variance = iv² * T
+    Returns SVI params (a, b, rho, m, s) or None if fit fails.
+    """
+    from scipy.optimize import minimize
+
+    if len(moneyness_arr) < 4:
+        return None
+
+    k = np.log(moneyness_arr)
+    w = (iv_arr / 100.0) ** 2  # total variance proxy
+
+    def svi(params, k_vals):
+        a, b, rho, m_p, s = params
+        return a + b * (rho * (k_vals - m_p) + np.sqrt((k_vals - m_p)**2 + s**2))
+
+    def objective(params):
+        pred = svi(params, k)
+        return np.sum((pred - w) ** 2)
+
+    # Initial guess
+    a0 = np.mean(w)
+    b0 = 0.1
+    rho0 = -0.3
+    m0 = np.mean(k)
+    s0 = 0.1
+
+    bounds = [(0, None), (0, None), (-0.99, 0.99), (None, None), (0.001, None)]
+
+    try:
+        res = minimize(objective, [a0, b0, rho0, m0, s0],
+                       bounds=bounds, method='L-BFGS-B', options={'maxiter': 200})
+        if res.success and res.fun / len(k) < 0.01:  # Good fit
+            return res.x
+    except Exception:
+        pass
+    return None
+
+
 def interp_iv(pts, target_m, target_dte):
-    from scipy.interpolate import griddata
+    """
+    Interpolate IV from Deribit surface data using a multi-method approach:
+    1. SVI parameterisation per expiry slice (industry standard)
+    2. RBF (Radial Basis Function) interpolation as fallback
+    3. Distance-weighted nearest-neighbor as last resort
+
+    Returns IV in percentage (e.g. 55.0 for 55%).
+    """
+    from scipy.interpolate import RBFInterpolator
+
     if not pts or len(pts) < 3:
         return None
-    cp = [p for p in pts if p.get("type") == "C"]
-    if len(cp) < 5:
-        cp = pts
-    m = np.array([p["moneyness"] for p in cp])
-    d = np.array([p["dte"] for p in cp])
-    iv = np.array([p["iv"] for p in cp])
-    mask = (m > 0.1) & (m < 5.0) & (d > 0)
+
+    # Prefer calls for above-spot, puts for below-spot
+    if target_m >= 1.0:
+        filtered = [p for p in pts if p.get("type") == "C"]
+    else:
+        filtered = [p for p in pts if p.get("type") == "P"]
+    if len(filtered) < 5:
+        filtered = pts  # Use all if not enough of one type
+
+    m = np.array([p["moneyness"] for p in filtered])
+    d = np.array([p["dte"] for p in filtered])
+    iv = np.array([p["iv"] for p in filtered])
+
+    # Filter outliers
+    mask = (m > 0.3) & (m < 3.0) & (d > 0) & (iv > 5) & (iv < 300)
     m, d, iv = m[mask], d[mask], iv[mask]
     if len(m) < 3:
         return None
-    for method in ["cubic", "linear", "nearest"]:
-        try:
-            v = griddata((m, d), iv, (target_m, target_dte), method=method)
-            if not np.isnan(v) and v > 0:
-                return float(v)
-        except Exception:
-            continue
-    dists = np.sqrt(((m-target_m)*5)**2 + ((d-target_dte)/30)**2)
-    nn = np.argsort(dists)[:5]
-    w = 1.0/(dists[nn]+0.001)
-    return float(np.average(iv[nn], weights=w))
+
+    # ── Method 1: SVI per-slice interpolation ──
+    # Group by similar DTE (within 2 days)
+    unique_dtes = sorted(set(d))
+    slices = {}  # dte_bucket -> (moneyness_arr, iv_arr, actual_dte)
+    for dte_val in unique_dtes:
+        slice_mask = np.abs(d - dte_val) < 2.0
+        if np.sum(slice_mask) >= 4:
+            bucket_dte = round(dte_val)
+            if bucket_dte not in slices or np.sum(slice_mask) > len(slices[bucket_dte][0]):
+                slices[bucket_dte] = (m[slice_mask], iv[slice_mask], dte_val)
+
+    if len(slices) >= 2:
+        # Fit SVI to each slice, then interpolate across expiries
+        svi_results = []  # (slice_dte, predicted_iv)
+        for bucket_dte, (s_m, s_iv, actual_dte) in sorted(slices.items()):
+            params = _fit_svi_slice(s_m, s_iv)
+            if params is not None:
+                a, b, rho, m_p, s = params
+                k = math.log(target_m)
+                w_pred = a + b * (rho * (k - m_p) + math.sqrt((k - m_p)**2 + s**2))
+                if w_pred > 0:
+                    iv_pred = math.sqrt(w_pred) * 100  # Convert back to IV %
+                    if 5 < iv_pred < 300:
+                        svi_results.append((actual_dte, iv_pred))
+
+        if len(svi_results) >= 2:
+            # Linear interpolation across expiry slices
+            svi_dtes = np.array([r[0] for r in svi_results])
+            svi_ivs = np.array([r[1] for r in svi_results])
+            if target_dte <= svi_dtes[0]:
+                return float(svi_ivs[0])  # Extrapolate flat
+            if target_dte >= svi_dtes[-1]:
+                return float(svi_ivs[-1])  # Extrapolate flat
+            result = float(np.interp(target_dte, svi_dtes, svi_ivs))
+            if 5 < result < 300:
+                log.debug(f"IV via SVI: {result:.1f}% for m={target_m:.3f}, dte={target_dte:.1f}")
+                return result
+        elif len(svi_results) == 1:
+            return float(svi_results[0][1])
+
+    # ── Method 2: RBF interpolation ──
+    try:
+        # Normalize dimensions (moneyness and DTE have very different scales)
+        m_norm = (m - np.mean(m)) / (np.std(m) + 1e-6)
+        d_norm = (d - np.mean(d)) / (np.std(d) + 1e-6)
+        coords = np.column_stack([m_norm, d_norm])
+
+        target_m_norm = (target_m - np.mean(m)) / (np.std(m) + 1e-6)
+        target_d_norm = (target_dte - np.mean(d)) / (np.std(d) + 1e-6)
+        target_pt = np.array([[target_m_norm, target_d_norm]])
+
+        rbf = RBFInterpolator(coords, iv, kernel='thin_plate_spline', smoothing=1.0)
+        v = float(rbf(target_pt)[0])
+        if 5 < v < 300:
+            log.debug(f"IV via RBF: {v:.1f}% for m={target_m:.3f}, dte={target_dte:.1f}")
+            return v
+    except Exception:
+        pass
+
+    # ── Method 3: Distance-weighted nearest neighbors (last resort) ──
+    # Weight moneyness distance more heavily (vol smile effect is strong)
+    dists = np.sqrt(((m - target_m) * 8)**2 + ((d - target_dte) / 20)**2)
+    nn = np.argsort(dists)[:7]
+    w = 1.0 / (dists[nn] + 0.001)
+    result = float(np.average(iv[nn], weights=w))
+    if 5 < result < 300:
+        log.debug(f"IV via KNN: {result:.1f}% for m={target_m:.3f}, dte={target_dte:.1f}")
+        return result
+
+    return None
 
 
 # ─── Strategy Engine ─────────────────────────────────────────────────────────
@@ -399,7 +574,9 @@ def analyze(market, spot, iv_pts, capital, exposure):
         return None
     sigma = iv / 100.0
 
-    prob = bs_prob(spot, barrier, dte, sigma, CONFIG["risk_free_rate"], market["scenario"])
+    # Use One-Touch (First Passage Time) for barrier-style bets ("Will BTC HIT $X?")
+    prob = one_touch_prob(spot, barrier, dte, sigma, CONFIG["risk_free_rate"], market["scenario"])
+    model_pct = prob * 100
     
     # Evaluate edge based on what we would actually pay (Taker)
     entry_yes_price = market["entry_yes"]
@@ -497,8 +674,8 @@ def execute(state, opp):
              f"Edge={opp['edge']:.1f}% | +{opp['profit_pct']:.0f}% if win")
     tg_send(f"📈 <b>NEW TRADE</b>: {opp['desc']}\n"
             f"Edge: {opp['edge']:.1f}% | Win: {opp['win_prob']:.0f}%\n"
-            f"Cost: <code>${opp['cost']:.2f}</code> |\n" 
-            f"Target TP: +{CONFIG['take_profit_pct']}% | SL: {CONFIG['stop_loss_pct']}%")
+            f"Cost: <code>${opp['cost']:.2f}</code> |\n"
+            f"Target TP: +{CONFIG['take_profit_pct']:.0f}% | SL: -{CONFIG['stop_loss_pct']:.0f}%")
     return True
 
 
@@ -541,7 +718,8 @@ def settle(state, spot, iv_pts):
         iv = interp_iv(iv_pts, moneyness, max(0.1, dte)) if iv_pts else None
         sigma = (iv / 100.0) if (iv and iv > 0) else 0.55
 
-        model_prob_above = bs_prob(spot, pos["barrier"], max(0.1, dte), sigma, CONFIG["risk_free_rate"], "above")
+        # Use One-Touch probability for consistency with entry analysis
+        model_prob_above = one_touch_prob(spot, pos["barrier"], max(0.1, dte), sigma, CONFIG["risk_free_rate"], "above")
         
         # Fair price according to current models
         current_model_prob = model_prob_above if pos["direction"] == "BUY_YES" else (1 - model_prob_above)
@@ -906,8 +1084,8 @@ def mtm_position(pos, spot, iv_pts):
         iv = 55.0  # Default IV
     sigma = iv / 100.0
 
-    # Model probability of being above barrier at expiry
-    model_prob_above = bs_prob(spot, barrier, dte, sigma, CONFIG["risk_free_rate"], "above")
+    # Model probability using One-Touch for barrier-style bets
+    model_prob_above = one_touch_prob(spot, barrier, dte, sigma, CONFIG["risk_free_rate"], "above")
 
     if direction == "BUY_YES":
         # We bought YES, current fair value = model probability
@@ -1054,6 +1232,63 @@ def telegram_poller():
         time.sleep(3)
 
 
+# ─── Keep-Alive (prevents Render free-tier inactivity shutdown) ──────────────
+
+def keepalive_loop():
+    """
+    Self-ping the /health endpoint every 10 minutes to prevent Render from
+    shutting down the service due to inactivity. Also sends a Telegram
+    heartbeat every 2 hours so you know the bot is alive.
+    """
+    import urllib.request
+    port = int(os.getenv("PORT", "5001"))
+    url = f"http://localhost:{port}/health"
+    # Also try the external URL if available
+    render_url = os.getenv("RENDER_EXTERNAL_URL", "")
+    heartbeat_counter = 0
+    scans_between_heartbeats = CONFIG["heartbeat_interval"] // CONFIG["keepalive_interval"]
+
+    # Wait for server to start
+    time.sleep(30)
+    log.info(f"🏓 Keep-alive started: self-ping every {CONFIG['keepalive_interval']}s")
+
+    while True:
+        try:
+            # Self-ping local /health
+            urllib.request.urlopen(url, timeout=10)
+            log.debug("Keep-alive ping OK (local)")
+        except Exception:
+            pass
+
+        # Also ping external URL if on Render (this is what Render monitors)
+        if render_url:
+            try:
+                urllib.request.urlopen(f"{render_url}/health", timeout=10)
+                log.debug("Keep-alive ping OK (external)")
+            except Exception:
+                pass
+
+        # Telegram heartbeat every N pings (~2 hours)
+        heartbeat_counter += 1
+        if heartbeat_counter >= scans_between_heartbeats:
+            heartbeat_counter = 0
+            state = BOT_STATE
+            if state:
+                exposure = sum(p["cost"] for p in state.get("positions", []))
+                total_val = state["capital"] + exposure
+                ret = (total_val - state["initial_capital"]) / state["initial_capital"] * 100
+                uptime_h = state.get("scans_count", 0) * CONFIG["scan_interval"] / 3600
+                tg_send(
+                    f"💓 <b>Heartbeat</b>\n"
+                    f"Bot running — {uptime_h:.1f}h uptime\n"
+                    f"💰 ${total_val:.2f} ({ret:+.1f}%)\n"
+                    f"📊 {len(state.get('positions', []))} positions open\n"
+                    f"🔄 {state.get('scans_count', 0)} scans completed"
+                )
+
+        time.sleep(CONFIG["keepalive_interval"])
+
+
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -1064,6 +1299,10 @@ if __name__ == "__main__":
     # Start Telegram command handler
     tg_thread = threading.Thread(target=telegram_poller, daemon=True)
     tg_thread.start()
+
+    # Start keep-alive self-pinger (prevents Render inactivity shutdown)
+    keepalive_thread = threading.Thread(target=keepalive_loop, daemon=True)
+    keepalive_thread.start()
 
     # Start web server
     port = int(os.getenv("PORT", "5001"))
