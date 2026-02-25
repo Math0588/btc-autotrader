@@ -58,8 +58,6 @@ CONFIG = {
     "min_win_prob": 0.25,                                     # Cut absolute lotteries, but allow 25% if heavily mispriced
     "stop_loss_prob": 0.10,                                   # THESIS INVALIDATION: If our model says < 10% chance, cut loss and run!
     "max_drawdown_pct": 50,
-    "take_profit_pct": 20.0,                                  # Take profit at +20% unrealized
-    "stop_loss_pct": 30.0,                                    # Stop loss at -30% unrealized
     "keepalive_interval": int(os.getenv("KEEPALIVE_INTERVAL", "600")),  # 10 min self-ping
     "heartbeat_interval": int(os.getenv("HEARTBEAT_INTERVAL", "7200")),  # 2h Telegram heartbeat
     "telegram_token": os.getenv("TELEGRAM_TOKEN", ""),
@@ -574,8 +572,9 @@ def analyze(market, spot, iv_pts, capital, exposure):
         return None
     sigma = iv / 100.0
 
-    # Use One-Touch (First Passage Time) for barrier-style bets ("Will BTC HIT $X?")
-    prob = one_touch_prob(spot, barrier, dte, sigma, CONFIG["risk_free_rate"], market["scenario"])
+    # European probability: Polymarket resolves "above X on date Y" (price AT expiry)
+    # NOT "will it ever hit X" (which would be One-Touch)
+    prob = bs_prob(spot, barrier, dte, sigma, CONFIG["risk_free_rate"], market["scenario"])
     model_pct = prob * 100
     
     # Evaluate edge based on what we would actually pay (Taker)
@@ -644,7 +643,8 @@ def analyze(market, spot, iv_pts, capital, exposure):
         "token": market["token"], "direction": direction,
         "desc": desc, "dte": dte, "expiry_dt": market["expiry_dt"],
         "pm_prob": pm_prob, "model_prob": round(model_pct, 1),
-        "edge": round(abs(edge), 1), "entry": entry,
+        "edge": round(abs(edge) * 100, 1), "edge_raw": abs(edge),  # edge_raw for dynamic exits
+        "entry": entry,
         "win_prob": round(win_p*100, 1),
         "profit_pct": round((payout/cost)*100, 0),
         "n": n, "cost": round(actual, 2), "e_pnl": round(e_pnl, 2),
@@ -664,6 +664,8 @@ def execute(state, opp):
         "token": opp["token"], "entry": opp["entry"], "n": opp["n"],
         "cost": opp["cost"], "win_prob": opp["win_prob"],
         "profit_pct": opp["profit_pct"], "e_pnl": opp["e_pnl"],
+        "entry_edge": opp.get("edge_raw", opp["edge"] / 100),   # Store for dynamic TP/SL
+        "entry_dte": opp["dte"],                                  # Store for dynamic TP/SL
         "expiry_dt": opp["expiry_dt"].isoformat() if isinstance(opp["expiry_dt"], datetime) else opp["expiry_dt"],
         "opened_at": datetime.now(timezone.utc).isoformat(), "status": "open",
     }
@@ -674,8 +676,8 @@ def execute(state, opp):
              f"Edge={opp['edge']:.1f}% | +{opp['profit_pct']:.0f}% if win")
     tg_send(f"📈 <b>NEW TRADE</b>: {opp['desc']}\n"
             f"Edge: {opp['edge']:.1f}% | Win: {opp['win_prob']:.0f}%\n"
-            f"Cost: <code>${opp['cost']:.2f}</code> |\n"
-            f"Target TP: +{CONFIG['take_profit_pct']:.0f}% | SL: -{CONFIG['stop_loss_pct']:.0f}%")
+            f"Cost: <code>${opp['cost']:.2f}</code>\n"
+            f"Exits: Dynamic (edge-decay TP + thesis-invalidation SL)")
     return True
 
 
@@ -696,11 +698,11 @@ def settle(state, spot, iv_pts):
                 pnl = payout
                 state["capital"] += pos["cost"] + payout
                 state["wins"] += 1
-                emoji, result = "✅", "WIN(Exp)"
+                emoji, result = "\u2705", "WIN(Exp)"
             else:
                 pnl = -pos["cost"]
                 state["losses"] += 1
-                emoji, result = "❌", "LOSS(Exp)"
+                emoji, result = "\u274c", "LOSS(Exp)"
                 
             state["total_pnl"] += pnl
             pos["pnl"] = round(pnl, 2)
@@ -712,20 +714,19 @@ def settle(state, spot, iv_pts):
             tg_send(f"{emoji} <b>{result}</b>: {pos['desc']}\nPnL: <code>${pos['pnl']:+.2f}</code>")
             continue
 
-        # --- 2. EARLY EXITS (Spread Recorrelation) ---
+        # --- 2. DYNAMIC EARLY EXITS ---
         # Get MTM fair value
         moneyness = pos["barrier"] / spot
         iv = interp_iv(iv_pts, moneyness, max(0.1, dte)) if iv_pts else None
         sigma = (iv / 100.0) if (iv and iv > 0) else 0.55
 
-        # Use One-Touch probability for consistency with entry analysis
-        model_prob_above = one_touch_prob(spot, pos["barrier"], max(0.1, dte), sigma, CONFIG["risk_free_rate"], "above")
+        # European probability (consistent with entry analysis)
+        model_prob_above = bs_prob(spot, pos["barrier"], max(0.1, dte), sigma, CONFIG["risk_free_rate"], "above")
         
         # Fair price according to current models
         current_model_prob = model_prob_above if pos["direction"] == "BUY_YES" else (1 - model_prob_above)
         
-        # Track our current edge: Does the model still think we have an advantage?
-        # Entry price was the probability we paid.
+        # Current edge vs entry
         current_edge = current_model_prob - pos["entry"]
         current_edge_pct = current_edge * 100
         
@@ -734,41 +735,110 @@ def settle(state, spot, iv_pts):
         unrealized_pnl_pct = (sell_value / pos["cost"]) * 100 - 100
         pnl = sell_value - pos["cost"]
 
-        # EXITS LOGIC
-        # 1. Take Profit / Recorrelation achieved: 
-        # If edge falls below a threshold (Ex: 0.5%), the market has converged to fair value. Sell.
-        if current_edge_pct <= CONFIG["exit_edge_pct"] and unrealized_pnl_pct > 0:
+        # ─── Dynamic exit parameters ───
+        entry_edge = pos.get("entry_edge", 0.03)  # Original edge at entry
+        entry_dte = pos.get("entry_dte", 7)        # Original DTE at entry
+        time_elapsed_ratio = max(0, 1 - dte / max(entry_dte, 0.1))  # 0 at entry → 1 at expiry
+
+        # ━━━ DYNAMIC TAKE PROFIT ━━━
+        # Logic: TP when the Kelly EV of continued holding becomes negative.
+        # As edge decays toward 0, the risk of reversal outweighs the remaining upside.
+        # The TP threshold TIGHTENS as we approach expiry (theta acceleration).
+        #
+        # tp_edge_threshold = base_threshold * (1 - time_decay_factor)
+        # Base: we TP when edge drops below 40% of entry edge
+        # Near expiry: we TP even more aggressively (below 80% of entry edge)
+        tp_time_factor = 0.4 + 0.4 * time_elapsed_ratio  # 0.4 → 0.8 over lifetime
+        tp_edge_threshold = entry_edge * tp_time_factor * 100  # In percentage
+        
+        # Additional condition: if we captured > 60% of max possible profit, lock it in
+        max_possible_pnl_pct = (1.0 / pos["entry"] - 1) * 100  # Max profit if win at expiry
+        profit_capture_ratio = unrealized_pnl_pct / max(max_possible_pnl_pct, 1) if max_possible_pnl_pct > 0 else 0
+        
+        tp_triggered = False
+        tp_reason = ""
+        
+        if current_edge_pct <= tp_edge_threshold and unrealized_pnl_pct > 0:
+            tp_triggered = True
+            tp_reason = f"Edge decay ({current_edge_pct:.1f}% < {tp_edge_threshold:.1f}% threshold)"
+        elif profit_capture_ratio >= 0.6 and unrealized_pnl_pct > 5:
+            # Captured 60%+ of max profit — diminishing returns to hold
+            tp_triggered = True
+            tp_reason = f"Profit capture {profit_capture_ratio*100:.0f}% of max"
+        elif time_elapsed_ratio > 0.85 and unrealized_pnl_pct > 0:
+            # Very close to expiry with ANY profit — gamma risk is too high
+            tp_triggered = True
+            tp_reason = f"Near-expiry profit lock (DTE={dte:.1f}d)"
+
+        if tp_triggered:
             state["capital"] += sell_value
             state["total_pnl"] += pnl
             state.setdefault("early_tp", 0)
             state["early_tp"] += 1
             
             pos["pnl"] = round(pnl, 2)
-            pos["status"], pos["result"] = "closed", "TP(Recorrelated)"
+            pos["status"], pos["result"] = "closed", "TP(Dynamic)"
             pos["settled_at"] = now.isoformat()
             state["closed_trades"].append(pos)
             
-            log.info(f"🎯 RECORRELATION EXIT: {pos['desc']} | Edge dropped to {current_edge_pct:.1f}% | PnL: ${pos['pnl']:+.2f} ({unrealized_pnl_pct:+.1f}%)")
-            tg_send(f"🎯 <b>RECORRELATION EXIT</b>: {pos['desc']}\n"
-                    f"Market converged to Fair Value. PnL: <code>${pos['pnl']:+.2f} ({unrealized_pnl_pct:+.1f}%)</code>")
+            log.info(f"\U0001f3af TP: {pos['desc']} | {tp_reason} | PnL: ${pos['pnl']:+.2f} ({unrealized_pnl_pct:+.1f}%)")
+            tg_send(f"\U0001f3af <b>TAKE PROFIT</b>: {pos['desc']}\n"
+                    f"{tp_reason}\n"
+                    f"PnL: <code>${pos['pnl']:+.2f} ({unrealized_pnl_pct:+.1f}%)</code>")
             continue
 
-        # 2. Stop Loss / Thesis Dead:
-        # If the probability of success crashes below our tolerance, we cut the trade.
-        if current_model_prob <= CONFIG["stop_loss_prob"]:
+        # ━━━ DYNAMIC STOP LOSS ━━━
+        # Logic: SL threshold adapts based on:
+        # 1. Entry edge (higher conviction = wider stop)
+        # 2. Time elapsed (tightens as DTE decreases — theta burns us if wrong)
+        # 3. Absolute floor: if model probability < 8%, thesis is dead regardless
+        #
+        # Base SL: model_prob < entry_edge * scaling_factor
+        # The scaling allows the trade to breathe early, but cuts aggressively near expiry
+        
+        # SL probability floor: starts generous, tightens toward expiry
+        # At entry: stop if prob < 15% (generous, let the trade breathe)
+        # Near expiry: stop if prob < 30% (tight, theta is killing us)
+        sl_base = 0.15
+        sl_near_expiry = 0.35
+        sl_prob_threshold = sl_base + (sl_near_expiry - sl_base) * time_elapsed_ratio
+        
+        # Adjust based on entry conviction: higher edge = slightly wider stop
+        edge_adjustment = min(entry_edge * 0.5, 0.05)  # Max 5% wider
+        sl_prob_threshold = max(0.08, sl_prob_threshold - edge_adjustment)  # Absolute floor 8%
+        
+        # Also check PnL-based stop: if we're losing > 50% of cost AND prob is bad
+        pnl_based_sl = unrealized_pnl_pct < -50 and current_model_prob < 0.30
+        
+        sl_triggered = False
+        sl_reason = ""
+        
+        if current_model_prob <= sl_prob_threshold:
+            sl_triggered = True
+            sl_reason = f"Prob {current_model_prob*100:.1f}% < {sl_prob_threshold*100:.0f}% dynamic threshold"
+        elif pnl_based_sl:
+            sl_triggered = True
+            sl_reason = f"PnL {unrealized_pnl_pct:+.0f}% + low prob {current_model_prob*100:.1f}%"
+        elif current_model_prob <= 0.08:
+            # Absolute floor — thesis completely dead
+            sl_triggered = True
+            sl_reason = f"Thesis dead (prob={current_model_prob*100:.1f}%)"
+
+        if sl_triggered:
             state["capital"] += sell_value
             state["total_pnl"] += pnl
             state.setdefault("early_sl", 0)
             state["early_sl"] += 1
             
             pos["pnl"] = round(pnl, 2)
-            pos["status"], pos["result"] = "closed", "SL(Dead Thesis)"
+            pos["status"], pos["result"] = "closed", "SL(Dynamic)"
             pos["settled_at"] = now.isoformat()
             state["closed_trades"].append(pos)
 
-            log.info(f"✂️ THESIS STOP LOSS: {pos['desc']} | Prob crashed to {current_model_prob*100:.1f}% | PnL: ${pos['pnl']:+.2f} ({unrealized_pnl_pct:+.1f}%)")
-            tg_send(f"✂️ <b>THESIS INVALIDATED (SL)</b>: {pos['desc']}\n"
-                    f"Probability dropped too low. Cut early! PnL: <code>${pos['pnl']:+.2f} ({unrealized_pnl_pct:+.1f}%)</code>")
+            log.info(f"\u2702\ufe0f SL: {pos['desc']} | {sl_reason} | PnL: ${pos['pnl']:+.2f} ({unrealized_pnl_pct:+.1f}%)")
+            tg_send(f"\u2702\ufe0f <b>STOP LOSS</b>: {pos['desc']}\n"
+                    f"{sl_reason}\n"
+                    f"PnL: <code>${pos['pnl']:+.2f} ({unrealized_pnl_pct:+.1f}%)</code>")
             continue
             
         # Position remains open
@@ -1084,8 +1154,8 @@ def mtm_position(pos, spot, iv_pts):
         iv = 55.0  # Default IV
     sigma = iv / 100.0
 
-    # Model probability using One-Touch for barrier-style bets
-    model_prob_above = one_touch_prob(spot, barrier, dte, sigma, CONFIG["risk_free_rate"], "above")
+    # European probability: Polymarket resolves at expiry, not barrier-touch
+    model_prob_above = bs_prob(spot, barrier, dte, sigma, CONFIG["risk_free_rate"], "above")
 
     if direction == "BUY_YES":
         # We bought YES, current fair value = model probability
