@@ -51,7 +51,7 @@ log = logging.getLogger("autotrader")
 
 CONFIG = {
     "starting_capital": float(os.getenv("STARTING_CAPITAL", "100")),
-    "scan_interval": int(os.getenv("SCAN_INTERVAL", "900")),  # 15 min
+    "scan_interval": int(os.getenv("SCAN_INTERVAL", "300")),  
     "min_edge_pct": float(os.getenv("MIN_EDGE", "3.0")),
     "kelly_fraction": float(os.getenv("KELLY_FRAC", "0.40")),  # Increased Kelly to 40% (More aggressive compounding)
     "max_position_pct": 0.25,       # Allowed up to 25% of capital per trade
