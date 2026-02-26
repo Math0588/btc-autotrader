@@ -1,10 +1,17 @@
 """
-🤖 Polymarket BTC Autotrader — Autonomous Paper Trading Bot
-==========================================================
+🤖 Polymarket BTC Autotrader v2.0 — Quant-Grade Paper Trading Bot
+==================================================================
 Runs 24/7, scans Polymarket markets, computes model probabilities
 using Deribit IV, identifies edge, and executes paper trades.
 
-Designed to be deployed FREE on Render / Railway / Koyeb.
+v2.0 FIXES (Senior Quant Review):
+  🔴 #1 — MTM from Polymarket CLOB mid (not model re-price)
+  🔴 #2 — Active exit management (TP / SL / Time Decay)
+  🔴 #3 — European-only probability (removed One-Touch bias)
+  🔴 #4 — Kelly 25%, 8% max per trade, 60% max exposure
+  🟠 #5 — Drawdown on total portfolio value (cash + exposure MTM)
+  🟠 #6 — State reconciliation on startup (orphaned position fix)
+  🟡 #7 — Market discovery via Gamma API tag search (not slug-only)
 
 Usage:
     python autotrader.py                  # Run the bot
@@ -13,11 +20,11 @@ Usage:
 
 Environment Variables:
     STARTING_CAPITAL   — Starting capital in USD (default: 100)
-    SCAN_INTERVAL      — Seconds between scans (default: 900 = 15min)
+    SCAN_INTERVAL      — Seconds between scans (default: 300 = 5min)
     TELEGRAM_TOKEN     — Telegram bot token for notifications (optional)
     TELEGRAM_CHAT      — Telegram chat ID for notifications (optional)
     MIN_EDGE           — Minimum edge % to trade (default: 3.0)
-    KELLY_FRAC         — Kelly fraction (default: 0.20)
+    KELLY_FRAC         — Kelly fraction (default: 0.25)
     DRY_RUN            — If "false", attempt real trades (default: "true")
 """
 
@@ -48,34 +55,41 @@ logging.basicConfig(
 log = logging.getLogger("autotrader")
 
 # ─── Configuration ────────────────────────────────────────────────────────────
-
+# 🔴 FIX #4 — Conservative Kelly sizing to avoid ruin
 CONFIG = {
     "starting_capital": float(os.getenv("STARTING_CAPITAL", "100")),
-    "scan_interval": int(os.getenv("SCAN_INTERVAL", "300")),  
+    "scan_interval": int(os.getenv("SCAN_INTERVAL", "300")),
     "min_edge_pct": float(os.getenv("MIN_EDGE", "3.0")),
-    "kelly_fraction": float(os.getenv("KELLY_FRAC", "0.40")),  # Increased Kelly to 40% (More aggressive compounding)
-    "max_position_pct": 0.25,       # Allowed up to 25% of capital per trade
-    "max_exposure_pct": 1.00,       # 100% capital efficiency (0% cash drag)
+    "kelly_fraction": float(os.getenv("KELLY_FRAC", "0.25")),   # 🔴 FIX #4: Quarter-Kelly (was 0.40)
+    "max_position_pct": 0.08,        # 🔴 FIX #4: Max 8% per trade (was 25%)
+    "max_exposure_pct": 0.60,        # 🔴 FIX #4: Max 60% exposed (was 100%)
+    "max_positions": 5,              # 🔴 FIX #4: Max 5 simultaneous positions
     "polymarket_fee_pct": 2.0,
     "risk_free_rate": 0.045,
     "btc_drift_real": 0.10,
     "min_dte": 2,
-    "max_dte": 45,                  # Only change: extend time horizon slightly for longer trades
+    "max_dte": 45,
     "min_liquidity": 5000,
     "min_volume": 1000,
-    "min_win_prob": 0.15,           # Don't take <15% win prob bets
-    "max_drawdown_pct": 30,         # Reduce sizing if drawdown exceeds 30%
+    "min_win_prob": 0.15,
+    "max_drawdown_pct": 30,
+    # 🔴 FIX #2 — Exit thresholds
+    "take_profit_mult": 1.60,        # Exit if price >= 1.6x entry (+60%)
+    "stop_loss_mult": 0.40,          # Exit if price <= 0.4x entry (-60%)
+    "time_decay_hours": 6,           # Exit if DTE < 6h and position weak
+    "time_decay_price_thresh": 0.35, # "weak" = current_mid < 0.35
     "telegram_token": os.getenv("TELEGRAM_TOKEN", ""),
     "telegram_chat": os.getenv("TELEGRAM_CHAT", ""),
     "dry_run": os.getenv("DRY_RUN", "true").lower() != "false",
 }
 
 POLYMARKET_GAMMA_API = "https://gamma-api.polymarket.com"
+POLYMARKET_CLOB_API = "https://clob.polymarket.com"
 DERIBIT_API = "https://www.deribit.com/api/v2/public"
 
 STATE_FILE = Path("autotrader_state.json")
 
-# Month name mappings for slug generation
+# Month name mappings for slug generation (kept for backward compat)
 _MONTH_NAMES = {
     1: "january", 2: "february", 3: "march", 4: "april",
     5: "may", 6: "june", 7: "july", 8: "august",
@@ -139,6 +153,72 @@ def send_telegram(message):
         log.warning(f"Telegram error: {e}")
 
 
+# ─── Polymarket CLOB MTM ─────────────────────────────────────────────────────
+# 🔴 FIX #1 — Fetch real mid price from Polymarket CLOB for mark-to-market
+
+def get_polymarket_mid(token_id: str):
+    """
+    Fetch real mid price from Polymarket CLOB.
+    This is the ACTUAL price you could exit at, not the model's opinion.
+    """
+    if not token_id:
+        return None
+    try:
+        resp = requests.get(
+            f"{POLYMARKET_CLOB_API}/midpoint",
+            params={"token_id": token_id},
+            timeout=5,
+        )
+        data = resp.json()
+        mid = float(data.get("mid", 0))
+        if 0 < mid <= 1:
+            return mid
+        return None
+    except Exception as e:
+        log.debug(f"CLOB midpoint fetch failed for {token_id[:16]}...: {e}")
+        return None
+
+
+def mark_to_market(state: dict, spot: float = None) -> float:
+    """
+    🔴 FIX #1 — Mark all positions to market using Polymarket CLOB mid.
+    Returns total unrealized PnL.
+    Falls back to cost-based valuation if CLOB is unavailable.
+    """
+    total_unrealized = 0.0
+    mtm_count = 0
+
+    for pos in state["positions"]:
+        token_id = pos.get("token_id", "")
+        mid = get_polymarket_mid(token_id) if token_id else None
+
+        entry = pos.get("entry_price", pos.get("entry", 0))
+        n = pos.get("n_contracts", pos.get("n", 1))
+
+        if mid is not None:
+            # Real MTM from Polymarket CLOB
+            if pos["direction"] == "BUY_YES":
+                unrealized = (mid - entry) * n
+            else:  # BUY_NO
+                unrealized = ((1.0 - mid) - entry) * n
+            pos["current_mid"] = mid
+            pos["unrealized_pnl"] = round(unrealized, 4)
+            pos["mtm_source"] = "clob"
+            mtm_count += 1
+        else:
+            # Fallback: use model re-price or cost as proxy
+            pos["current_mid"] = entry
+            pos["unrealized_pnl"] = 0.0
+            pos["mtm_source"] = "cost_proxy"
+
+        total_unrealized += pos.get("unrealized_pnl", 0.0)
+
+    if mtm_count:
+        log.info(f"📊 MTM: {mtm_count}/{len(state['positions'])} positions marked via CLOB")
+
+    return total_unrealized
+
+
 # ─── Deribit Data ─────────────────────────────────────────────────────────────
 
 def fetch_btc_spot():
@@ -190,11 +270,7 @@ def fetch_deribit_iv_surface():
             try:
                 strike = float(parts[2])
                 opt_type = parts[3]  # C or P
-                # Parse expiry from creation_timestamp
-                creation_ts = s.get("creation_timestamp", 0)
-                # Use the instrument name to get expiry date
                 exp_str = parts[1]
-                from datetime import datetime as dt_class
                 exp_dt = datetime.strptime(exp_str, "%d%b%y").replace(tzinfo=timezone.utc)
                 exp_dt = exp_dt.replace(hour=8)  # Deribit settles at 08:00 UTC
 
@@ -233,14 +309,41 @@ def _pm_get(url, params=None):
 
 def fetch_btc_barrier_markets():
     """
-    Fetch all active BTC barrier markets from Polymarket.
-    Uses date-based slug discovery: bitcoin-above-on-{month}-{day}
+    🟡 FIX #7 — Hybrid market discovery:
+      1. Tag-based search via Gamma API (catches non-standard slugs)
+      2. Slug-based search (backward compat for known naming patterns)
     """
     markets = []
     seen = set()
     now = datetime.now(timezone.utc)
 
-    # Generate candidate slugs for current/upcoming events
+    # ─── Method 1: Tag-based discovery (NEW) ──────────────────────────
+    try:
+        params = {
+            "tag": "crypto",
+            "active": True,
+            "archived": False,
+            "limit": 100,
+        }
+        events = _pm_get(f"{POLYMARKET_GAMMA_API}/events", params=params)
+        if isinstance(events, list):
+            for event in events:
+                title = (event.get("title", "") or "").lower()
+                if not any(kw in title for kw in ["bitcoin", "btc"]):
+                    continue
+                sub_markets = event.get("markets", [])
+                for sm in sub_markets:
+                    if sm.get("closed", False):
+                        continue
+                    parsed = _parse_market(sm)
+                    if parsed and parsed["condition_id"] not in seen:
+                        seen.add(parsed["condition_id"])
+                        markets.append(parsed)
+        log.info(f"Tag discovery: found {len(markets)} markets")
+    except Exception as e:
+        log.debug(f"Tag-based discovery error: {e}")
+
+    # ─── Method 2: Slug-based discovery (original) ────────────────────
     for delta in range(-1, 21):
         dt = now + timedelta(days=delta)
         month_name = _MONTH_NAMES[dt.month]
@@ -267,8 +370,24 @@ def fetch_btc_barrier_markets():
         except Exception as e:
             log.debug(f"Error fetching slug {slug}: {e}")
 
+    # ─── Method 3: Annual "what price will bitcoin hit" markets ───────
+    for annual_slug in ["what-price-will-bitcoin-hit-in-2026", "what-price-will-bitcoin-hit-in-2025"]:
+        try:
+            events = _pm_get(f"{POLYMARKET_GAMMA_API}/events", params={"slug": annual_slug})
+            if events and isinstance(events, list) and len(events) > 0:
+                event = events[0]
+                for sm in event.get("markets", []):
+                    if sm.get("closed", False):
+                        continue
+                    parsed = _parse_market(sm)
+                    if parsed and parsed["condition_id"] not in seen:
+                        seen.add(parsed["condition_id"])
+                        markets.append(parsed)
+        except Exception:
+            pass
+
     markets.sort(key=lambda m: (m["expiry_dt"], m["barrier_price"]))
-    log.info(f"Found {len(markets)} BTC barrier markets on Polymarket")
+    log.info(f"Total: {len(markets)} BTC barrier markets on Polymarket")
     return markets
 
 
@@ -349,6 +468,26 @@ def _parse_market(data):
     liquidity = float(data.get("liquidity", 0) or data.get("liquidityNum", 0) or 0)
     condition_id = data.get("conditionId", "") or data.get("condition_id", "")
 
+    # Extract token IDs for CLOB MTM
+    token_ids = []
+    clob_token_ids = data.get("clobTokenIds", "")
+    if clob_token_ids:
+        try:
+            if isinstance(clob_token_ids, str):
+                token_ids = json.loads(clob_token_ids)
+            else:
+                token_ids = clob_token_ids
+        except Exception:
+            pass
+
+    # Also check tokens array
+    if not token_ids:
+        tokens = data.get("tokens", [])
+        for t in tokens:
+            tid = t.get("token_id", "")
+            if tid:
+                token_ids.append(tid)
+
     return {
         "title": title,
         "condition_id": condition_id,
@@ -361,78 +500,46 @@ def _parse_market(data):
         "dte_days": round(dte, 2),
         "volume": volume,
         "liquidity": liquidity,
+        "token_ids": token_ids,  # 🔴 FIX #1: store for CLOB MTM
     }
 
 
 # ─── Probability Models ──────────────────────────────────────────────────────
+# 🔴 FIX #3 — European-only probability model (removed One-Touch)
 
-def compute_one_touch_prob(spot, barrier, dte_days, sigma, r=0.045, scenario="above"):
+def compute_european_prob(spot, barrier, dte_days, sigma, r=0.045, scenario="above"):
     """
-    One-Touch (First Passage Time) probability.
-    More accurate than European for "Will BTC HIT $X by date?" bets.
-
-    For barrier ABOVE spot:
-        P(touch) = N(-d2) + (B/S)^(2μ/σ²) * N(-d1_adj)
-    For barrier BELOW spot:
-        P(touch) = N(d2_down) + (B/S)^(2μ/σ²) * N(d1_adj_down)
+    Standard Black-Scholes P(above/below barrier at expiry).
+    
+    🔴 FIX #3: Polymarket "BTC above $X on date Y" is a European digital.
+    It pays if BTC is above the barrier AT EXPIRY, not if it ever touches it.
+    One-Touch was systematically overestimating probabilities for OTM strikes.
     """
     if spot <= 0 or barrier <= 0 or dte_days <= 0 or sigma <= 0:
         return None
-
-    T = dte_days / 365.0
-    sqrt_t = math.sqrt(T)
-
-    # Drift under risk-neutral measure
-    mu = r - 0.5 * sigma**2
-
-    if scenario == "above":
-        if barrier <= spot:
-            # Already above barrier → high prob (European approx is fine)
-            d2 = (math.log(spot / barrier) + (r - 0.5 * sigma**2) * T) / (sigma * sqrt_t)
-            return norm.cdf(d2)
-
-        # Barrier above spot → First Passage Time
-        log_ratio = math.log(barrier / spot)
-        d_plus = (log_ratio - mu * T) / (sigma * sqrt_t)
-        d_minus = (log_ratio + mu * T) / (sigma * sqrt_t)
-
-        if sigma > 0:
-            exponent = 2 * mu * log_ratio / (sigma**2)
-            exponent = max(min(exponent, 50), -50)  # Clamp
-            prob = norm.cdf(-d_plus) + math.exp(exponent) * norm.cdf(-d_minus)
-        else:
-            prob = 0.0
-
-        return min(max(prob, 0), 1)
-
-    else:  # below
-        if barrier >= spot:
-            d2 = (math.log(spot / barrier) + (r - 0.5 * sigma**2) * T) / (sigma * sqrt_t)
-            return norm.cdf(-d2)
-
-        log_ratio = math.log(spot / barrier)
-        d_plus = (log_ratio + mu * T) / (sigma * sqrt_t)
-        d_minus = (log_ratio - mu * T) / (sigma * sqrt_t)
-
-        if sigma > 0:
-            exponent = -2 * mu * log_ratio / (sigma**2)
-            exponent = max(min(exponent, 50), -50)
-            prob = norm.cdf(-d_plus) + math.exp(exponent) * norm.cdf(-d_minus)
-        else:
-            prob = 0.0
-
-        return min(max(prob, 0), 1)
-
-
-def compute_european_prob(spot, barrier, dte_days, sigma, r=0.045, scenario="above"):
-    """Standard Black-Scholes P(above/below barrier at expiry)."""
     T = dte_days / 365.0
     d2 = (math.log(spot / barrier) + (r - 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
 
     if scenario == "above":
-        return norm.cdf(d2)
+        prob = norm.cdf(d2)
     else:
-        return norm.cdf(-d2)
+        prob = norm.cdf(-d2)
+
+    # 🔴 FIX #3: Skew adjustment for BTC vol smile
+    # BTC has negative skew: OTM puts are more expensive than OTM calls
+    # This means downside probabilities are underestimated by flat-vol BS
+    moneyness = barrier / spot
+    if scenario == "above" and moneyness > 1.10:
+        # Far OTM upside strike — model overestimates, apply negative adjustment
+        skew_adj = -0.02
+    elif scenario == "below" and moneyness < 0.90:
+        # Far OTM downside strike — model underestimates, apply positive adjustment
+        skew_adj = 0.02
+    else:
+        skew_adj = 0.0
+
+    prob = max(0.0, min(1.0, prob + skew_adj))
+    return prob
 
 
 def interpolate_iv(iv_points, target_moneyness, target_dte):
@@ -479,17 +586,236 @@ def interpolate_iv(iv_points, target_moneyness, target_dte):
     return float(np.average(iv_arr[nearest], weights=weights))
 
 
+# ─── Exit Strategy ────────────────────────────────────────────────────────────
+# 🔴 FIX #2 — Active position management with TP/SL/Time Decay
+
+def should_exit_early(pos: dict, current_mid: float, dte_hours: float) -> tuple:
+    """
+    Determine if a position should be exited before expiry.
+    
+    Exit rules:
+      1. TAKE_PROFIT: current_mid >= entry * 1.6  (+60%)
+      2. STOP_LOSS:   current_mid <= entry * 0.4   (-60%)
+      3. TIME_DECAY:  DTE < 6h AND position is weak (mid < 0.35)
+      4. EDGE_GONE:   Re-evaluated edge is negative (optional, future)
+    
+    Returns: (should_exit: bool, reason: str, exit_price: float)
+    """
+    entry = pos.get("entry_price", pos.get("entry", 0))
+    direction = pos["direction"]
+
+    # For BUY_NO, the relevant price is (1 - mid) since we bought NO token
+    if direction == "BUY_NO":
+        effective_price = 1.0 - current_mid
+    else:
+        effective_price = current_mid
+
+    # Take Profit
+    if effective_price >= entry * CONFIG["take_profit_mult"]:
+        return True, "TAKE_PROFIT", effective_price
+
+    # Stop Loss
+    if effective_price <= entry * CONFIG["stop_loss_mult"]:
+        return True, "STOP_LOSS", effective_price
+
+    # Time Decay Exit: near expiry with weak position
+    if dte_hours < CONFIG["time_decay_hours"] and effective_price < CONFIG["time_decay_price_thresh"]:
+        return True, "TIME_DECAY_EXIT", effective_price
+
+    return False, "", effective_price
+
+
+def execute_early_exit(state: dict, pos: dict, exit_price: float, reason: str):
+    """
+    Execute an early exit by selling the position at current mid.
+    """
+    fee_rate = CONFIG["polymarket_fee_pct"] / 100
+    n = pos.get("n_contracts", pos.get("n", 1))
+    cost = pos.get("cost", 0)
+
+    # Revenue from selling at current price (minus fees)
+    revenue = exit_price * n * (1 - fee_rate)
+    pnl = revenue - cost
+
+    # Return revenue to capital
+    state["capital"] += revenue
+
+    if pnl >= 0:
+        state["wins"] += 1
+        result = "WIN"
+        emoji = "🟢"
+    else:
+        state["losses"] += 1
+        result = "LOSS"
+        emoji = "🔴"
+
+    state["total_pnl"] += pnl
+
+    pos["status"] = "closed"
+    pos["result"] = result
+    pos["exit_reason"] = reason
+    pos["exit_price"] = round(exit_price, 4)
+    pos["pnl"] = round(pnl, 4)
+    pos["settled_at"] = datetime.now(timezone.utc).isoformat()
+    state["closed_trades"].append(pos)
+
+    entry = pos.get("entry_price", pos.get("entry", 0))
+
+    log.info(f"{emoji} EARLY EXIT [{reason}]: {pos.get('trade_desc', pos.get('desc', ''))} | "
+             f"Entry: {entry:.3f} → Exit: {exit_price:.3f} | "
+             f"PnL: ${pnl:+.2f} | Capital: ${state['capital']:.2f}")
+
+    # Telegram alert for early exit
+    pnl_pct = (pnl / cost * 100) if cost > 0 else 0
+    msg = (f"{emoji} <b>EARLY EXIT [{reason}]</b>\n"
+           f"{pos.get('trade_desc', pos.get('desc', ''))}\n"
+           f"Entry: <code>{entry:.3f}</code> → Exit: <code>{exit_price:.3f}</code>\n"
+           f"PnL: <code>${pnl:+.2f}</code> ({pnl_pct:+.1f}%)\n"
+           f"Capital: <code>${state['capital']:.2f}</code>")
+    send_telegram(msg)
+
+
+# ─── Drawdown Computation ────────────────────────────────────────────────────
+# 🟠 FIX #5 — Drawdown on total portfolio value (cash + MTM exposure)
+
+def compute_portfolio_value(state: dict) -> float:
+    """
+    Compute total portfolio value = cash + sum of position MTM values.
+    Positions with CLOB mid use real MTM; others fall back to cost.
+    """
+    exposure_value = 0.0
+    for pos in state["positions"]:
+        n = pos.get("n_contracts", pos.get("n", 1))
+        if pos.get("mtm_source") == "clob" and "current_mid" in pos:
+            # Use MTM value
+            if pos["direction"] == "BUY_YES":
+                exposure_value += pos["current_mid"] * n
+            else:
+                exposure_value += (1.0 - pos["current_mid"]) * n
+        else:
+            # Fallback to cost
+            exposure_value += pos.get("cost", 0)
+    return state["capital"] + exposure_value
+
+
+def update_drawdown(state: dict):
+    """
+    🟠 FIX #5: Update peak capital and drawdown using total portfolio value,
+    not just cash.
+    """
+    total_value = compute_portfolio_value(state)
+
+    if total_value > state.get("peak_capital", CONFIG["starting_capital"]):
+        state["peak_capital"] = total_value
+
+    if state["peak_capital"] > 0:
+        current_dd = (1 - total_value / state["peak_capital"]) * 100
+        state["max_drawdown"] = max(state.get("max_drawdown", 0), current_dd)
+        state["current_drawdown"] = round(current_dd, 2)
+    else:
+        state["current_drawdown"] = 0.0
+
+    state["portfolio_value"] = round(total_value, 2)
+
+
+# ─── State Reconciliation ────────────────────────────────────────────────────
+# 🟠 FIX #6 — Reconcile orphaned positions on startup
+
+def reconcile_on_startup(state: dict, spot: float):
+    """
+    At startup, settle all positions that expired during downtime.
+    This prevents 'ghost' positions and ensures accurate capital/stats.
+    """
+    now = datetime.now(timezone.utc)
+    reconciled = 0
+
+    for pos in list(state["positions"]):
+        expiry_str = pos.get("expiry_dt", "")
+        if not expiry_str:
+            continue
+        try:
+            expiry = datetime.fromisoformat(expiry_str)
+        except Exception:
+            continue
+
+        if now >= expiry:
+            log.warning(f"⚠️ Reconciling expired position from downtime: "
+                        f"{pos.get('trade_desc', pos.get('desc', pos.get('title', '?')))}")
+            settle_single_position(state, pos, spot, reason="RECONCILED_ON_STARTUP")
+            reconciled += 1
+
+    if reconciled:
+        # Remove reconciled positions from open list
+        state["positions"] = [p for p in state["positions"] if p.get("status") != "closed"]
+        log.info(f"🔄 Reconciled {reconciled} expired position(s) from downtime")
+        save_state(state)
+
+        msg = (f"🔄 <b>Startup Reconciliation</b>\n"
+               f"Settled {reconciled} position(s) expired during downtime.\n"
+               f"Capital: <code>${state['capital']:.2f}</code>")
+        send_telegram(msg)
+
+
+def settle_single_position(state: dict, pos: dict, spot: float, reason: str = "EXPIRY"):
+    """Settle a single position (used by both normal settlement and reconciliation)."""
+    barrier = pos.get("barrier_price", pos.get("barrier", 0))
+    direction = pos["direction"]
+    cost = pos["cost"]
+    n = pos.get("n_contracts", pos.get("n", 1))
+    entry = pos.get("entry_price", pos.get("entry", 0))
+    scenario = pos.get("scenario", "above")
+
+    # Determine if the bet won
+    if direction == "BUY_YES":
+        won = spot >= barrier if scenario == "above" else spot < barrier
+    else:  # BUY_NO
+        won = spot < barrier if scenario == "above" else spot >= barrier
+
+    if won:
+        fee = CONFIG["polymarket_fee_pct"] / 100
+        payout = n * (1.0 - entry) * (1 - fee)
+        pnl = payout  # Cost was already deducted when opening
+        state["capital"] += cost + pnl  # Return cost + profit
+        state["wins"] += 1
+        result = "WIN"
+        emoji = "✅"
+    else:
+        pnl = -cost  # Lost the entire cost
+        state["losses"] += 1
+        result = "LOSS"
+        emoji = "❌"
+
+    state["total_pnl"] += pnl
+
+    pos["status"] = "closed"
+    pos["result"] = result
+    pos["exit_reason"] = reason
+    pos["pnl"] = round(pnl, 2)
+    pos["settled_at"] = datetime.now(timezone.utc).isoformat()
+    pos["spot_at_expiry"] = spot
+    state["closed_trades"].append(pos)
+
+    log.info(f"{emoji} SETTLED [{reason}]: {pos.get('trade_desc', pos.get('desc', ''))} → {result} | "
+             f"PnL: ${pnl:+.2f} | Capital: ${state['capital']:.2f}")
+
+    # Telegram alert
+    msg = (f"{emoji} <b>{result}</b> [{reason}]: {pos.get('trade_desc', pos.get('desc', ''))}\n"
+           f"PnL: <code>${pnl:+.2f}</code>\n"
+           f"Capital: <code>${state['capital']:.2f}</code>")
+    send_telegram(msg)
+
+
 # ─── Core Strategy Engine ─────────────────────────────────────────────────────
 
-def analyze_market(market, spot, iv_points, capital, current_exposure):
+def analyze_market(market, spot, iv_points, capital, current_exposure, n_open_positions):
     """
     Analyze a single market for edge. Returns opportunity dict or None.
 
-    Quant improvements over basic strategy:
-    1. One-Touch probability (not European) for "will it HIT X" bets
-    2. Liquidity-adjusted edge (discount edge for thin markets)
-    3. Drawdown-aware Kelly sizing
-    4. Min win probability filter
+    Quant-grade analysis:
+      🔴 #3 — European probability only (no One-Touch)
+      🔴 #4 — Conservative Kelly sizing with drawdown control
+      Liquidity-adjusted edge
+      Min win probability filter
     """
     barrier = market["barrier_price"]
     dte = market["dte_days"]
@@ -503,6 +829,9 @@ def analyze_market(market, spot, iv_points, capital, current_exposure):
         return None
     if market["volume"] < CONFIG["min_volume"]:
         return None
+    # 🔴 FIX #4: Enforce max positions
+    if n_open_positions >= CONFIG["max_positions"]:
+        return None
 
     # Get IV for this strike
     moneyness = barrier / spot
@@ -511,26 +840,17 @@ def analyze_market(market, spot, iv_points, capital, current_exposure):
         return None
     sigma = iv / 100.0
 
-    # ══════ QUANT MODEL: One-Touch probability ══════
-    # Polymarket bets are "will BTC be above $X on date Y?"
-    # This is closer to European at-expiry probability
-    # But for "hit" type bets, One-Touch is more accurate
-    prob_european = compute_european_prob(spot, barrier, dte, sigma,
-                                          CONFIG["risk_free_rate"], scenario)
-    prob_one_touch = compute_one_touch_prob(spot, barrier, dte, sigma,
-                                            CONFIG["risk_free_rate"], scenario)
-
-    # Use blended probability (70% European + 30% One-Touch for "above" type)
-    # Polymarket "above on date X" is European-style (at expiry, not first passage)
-    model_prob = prob_european  # Primary model
-    if prob_one_touch is not None:
-        # Use One-Touch as sanity check / adjustment
-        model_prob = 0.85 * prob_european + 0.15 * prob_one_touch
+    # 🔴 FIX #3 — European probability ONLY
+    # Polymarket "BTC above $X on date Y" pays at expiry, not on touch.
+    model_prob = compute_european_prob(spot, barrier, dte, sigma,
+                                       CONFIG["risk_free_rate"], scenario)
+    if model_prob is None:
+        return None
 
     model_prob_pct = model_prob * 100
 
     # ══════ EDGE CALCULATION ══════
-    edge = model_prob_pct - pm_prob  # Positive = YES underpriced, Negative = NO underpriced
+    edge = model_prob_pct - pm_prob  # Positive = YES underpriced
 
     if abs(edge) < CONFIG["min_edge_pct"]:
         return None
@@ -553,10 +873,10 @@ def analyze_market(market, spot, iv_points, capital, current_exposure):
 
     # ══════ LIQUIDITY-ADJUSTED EDGE ══════
     liq = market["liquidity"]
-    liq_factor = min(liq / 20000, 1.0)  # Scale: $20k liq = full edge
+    liq_factor = min(liq / 20000, 1.0)
     adjusted_edge = abs(edge) * liq_factor
 
-    # ══════ KELLY SIZING with drawdown control ══════
+    # ══════ 🔴 FIX #4 — KELLY SIZING (Conservative) ══════
     fee_rate = CONFIG["polymarket_fee_pct"] / 100
     payout = (1.0 - entry_price) * (1 - fee_rate)
     cost = entry_price
@@ -571,7 +891,7 @@ def analyze_market(market, spot, iv_points, capital, current_exposure):
     if kelly_full <= 0:
         return None
 
-    kelly = kelly_full * CONFIG["kelly_fraction"]
+    kelly = kelly_full * CONFIG["kelly_fraction"]  # Quarter-Kelly
 
     # Drawdown control: reduce sizing during drawdowns
     drawdown_pct = (1 - capital / CONFIG["starting_capital"]) * 100
@@ -580,9 +900,9 @@ def analyze_market(market, spot, iv_points, capital, current_exposure):
     elif drawdown_pct > CONFIG["max_drawdown_pct"] / 2:
         kelly *= 0.75  # 3/4 size during moderate drawdowns
 
-    # Position sizing
-    max_pos = capital * CONFIG["max_position_pct"]
-    remaining_capacity = capital * CONFIG["max_exposure_pct"] - current_exposure
+    # 🔴 FIX #4 — Strict position sizing caps
+    max_pos = capital * CONFIG["max_position_pct"]  # 8% of capital
+    remaining_capacity = capital * CONFIG["max_exposure_pct"] - current_exposure  # 60% cap
     if remaining_capacity <= 0:
         return None
 
@@ -596,6 +916,14 @@ def analyze_market(market, spot, iv_points, capital, current_exposure):
     actual_cost = n_contracts * entry_price
     expected_pnl = p * payout * n_contracts - q * cost * n_contracts
     profit_if_win_pct = (payout / cost) * 100
+
+    # Get token_id for future CLOB MTM
+    token_ids = market.get("token_ids", [])
+    # YES token is typically first, NO token second
+    if direction == "BUY_YES":
+        token_id = token_ids[0] if len(token_ids) > 0 else ""
+    else:
+        token_id = token_ids[1] if len(token_ids) > 1 else (token_ids[0] if len(token_ids) > 0 else "")
 
     return {
         "title": market["title"],
@@ -619,6 +947,8 @@ def analyze_market(market, spot, iv_points, capital, current_exposure):
         "expected_pnl": round(expected_pnl, 2),
         "liquidity": market["liquidity"],
         "iv_used": round(iv, 2),
+        "token_id": token_id,          # 🔴 FIX #1: for CLOB MTM
+        "token_ids": token_ids,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -639,6 +969,7 @@ def execute_paper_trade(state, opportunity):
         "title": opportunity["title"],
         "trade_desc": opportunity["trade_desc"],
         "direction": opportunity["direction"],
+        "scenario": opportunity["scenario"],
         "barrier_price": opportunity["barrier_price"],
         "entry_price": opportunity["entry_price"],
         "n_contracts": opportunity["n_contracts"],
@@ -646,6 +977,11 @@ def execute_paper_trade(state, opportunity):
         "win_probability": opportunity["win_probability"],
         "profit_if_win_pct": opportunity["profit_if_win_pct"],
         "expected_pnl": opportunity["expected_pnl"],
+        "edge": opportunity["edge"],
+        "model_prob": opportunity["model_prob"],
+        "pm_prob": opportunity["pm_prob"],
+        "token_id": opportunity.get("token_id", ""),    # 🔴 FIX #1
+        "token_ids": opportunity.get("token_ids", []),
         "expiry_dt": opportunity["expiry_dt"].isoformat() if isinstance(opportunity["expiry_dt"], datetime) else opportunity["expiry_dt"],
         "opened_at": datetime.now(timezone.utc).isoformat(),
         "status": "open",
@@ -663,75 +999,138 @@ def execute_paper_trade(state, opportunity):
     return True
 
 
-def settle_expired_positions(state, spot):
+# ─── Position Management ──────────────────────────────────────────────────────
+
+def manage_positions(state, spot):
     """
-    Check open positions and settle expired ones.
-    A position settles when its expiry has passed.
+    🔴 FIX #1+2: Full position management cycle.
+    1. Mark-to-market all positions via Polymarket CLOB
+    2. Check for early exit signals (TP/SL/Time Decay)
+    3. Settle expired positions
     """
     now = datetime.now(timezone.utc)
     still_open = []
     settled_count = 0
+    exited_count = 0
+
+    # First, MTM all positions
+    mark_to_market(state, spot)
 
     for pos in state["positions"]:
-        expiry = datetime.fromisoformat(pos["expiry_dt"])
-        if now < expiry:
+        expiry_str = pos.get("expiry_dt", "")
+        try:
+            expiry = datetime.fromisoformat(expiry_str)
+        except Exception:
             still_open.append(pos)
             continue
 
-        # Position has expired — settle it
-        barrier = pos["barrier_price"]
-        direction = pos["direction"]
-        cost = pos["cost"]
-        n = pos["n_contracts"]
+        # ─── Check for expiry settlement ──────────────────────────────
+        if now >= expiry:
+            settle_single_position(state, pos, spot, reason="EXPIRY")
+            settled_count += 1
+            continue
 
-        # Determine if the bet won
-        if direction == "BUY_YES":
-            won = spot >= barrier if pos.get("scenario", "above") == "above" else spot < barrier
-        else:  # BUY_NO
-            won = spot < barrier if pos.get("scenario", "above") == "above" else spot >= barrier
+        # ─── 🔴 FIX #2: Check for early exit signals ─────────────────
+        dte_hours = (expiry - now).total_seconds() / 3600
+        current_mid = pos.get("current_mid", None)
 
-        if won:
-            fee = CONFIG["polymarket_fee_pct"] / 100
-            payout = n * (1.0 - pos["entry_price"]) * (1 - fee)
-            pnl = payout  # We already deducted cost when opening
-            state["capital"] += cost + pnl  # Return cost + profit
-            state["wins"] += 1
-            result = "WIN"
-            emoji = "✅"
-        else:
-            pnl = -cost  # Lost the entire cost
-            state["losses"] += 1
-            result = "LOSS"
-            emoji = "❌"
+        if current_mid is not None and current_mid > 0:
+            should_exit, reason, effective_price = should_exit_early(pos, current_mid, dte_hours)
+            if should_exit:
+                execute_early_exit(state, pos, effective_price, reason)
+                exited_count += 1
+                continue
 
-        state["total_pnl"] += pnl
-
-        # Track peak capital and drawdown
-        if state["capital"] > state["peak_capital"]:
-            state["peak_capital"] = state["capital"]
-        current_dd = (1 - state["capital"] / state["peak_capital"]) * 100
-        state["max_drawdown"] = max(state["max_drawdown"], current_dd)
-
-        pos["status"] = "closed"
-        pos["result"] = result
-        pos["pnl"] = round(pnl, 2)
-        pos["settled_at"] = now.isoformat()
-        pos["spot_at_expiry"] = spot
-        state["closed_trades"].append(pos)
-        settled_count += 1
-
-        log.info(f"{emoji} SETTLED: {pos['trade_desc']} → {result} | "
-                 f"PnL: ${pnl:+.2f} | Capital: ${state['capital']:.2f}")
-
-        # Telegram alert
-        msg = (f"{emoji} <b>{result}</b>: {pos['trade_desc']}\n"
-               f"PnL: <code>${pnl:+.2f}</code>\n"
-               f"Capital: <code>${state['capital']:.2f}</code>")
-        send_telegram(msg)
+        still_open.append(pos)
 
     state["positions"] = still_open
-    if settled_count:
-        log.info(f"Settled {settled_count} position(s). Capital: ${state['capital']:.2f}")
+
+    if settled_count or exited_count:
+        log.info(f"Position mgmt: {settled_count} settled, {exited_count} early exits. "
+                 f"Capital: ${state['capital']:.2f}")
+
+
+# ─── Enhanced Telegram Reports ────────────────────────────────────────────────
+
+def send_live_portfolio_report(state: dict, spot: float):
+    """
+    Send a comprehensive portfolio report to Telegram.
+    Includes live PnL, position-level MTM, and risk metrics.
+    """
+    total_value = compute_portfolio_value(state)
+    total_return_pct = (total_value - state["initial_capital"]) / state["initial_capital"] * 100
+    n_positions = len(state["positions"])
+    exposure = sum(p.get("cost", 0) for p in state["positions"])
+    unrealized = sum(p.get("unrealized_pnl", 0) for p in state["positions"])
+    win_rate = state["wins"] / max(state["total_trades"], 1) * 100
+    current_dd = state.get("current_drawdown", 0)
+
+    # Header
+    if total_return_pct >= 0:
+        trend = "📈"
+    else:
+        trend = "📉"
+
+    msg = (
+        f"{trend} <b>PORTFOLIO LIVE REPORT</b>\n"
+        f"{'━' * 28}\n"
+        f"💰 Total Value: <code>${total_value:.2f}</code>\n"
+        f"💵 Cash: <code>${state['capital']:.2f}</code>\n"
+        f"📊 Exposure: <code>${exposure:.2f}</code>\n"
+        f"📈 Unrealized: <code>${unrealized:+.2f}</code>\n"
+        f"💹 Total PnL: <code>${state['total_pnl']:+.2f}</code>\n"
+        f"📊 Return: <code>{total_return_pct:+.1f}%</code>\n"
+        f"{'━' * 28}\n"
+        f"🎯 Win Rate: {win_rate:.0f}% ({state['wins']}W / {state['losses']}L)\n"
+        f"📉 Max DD: {state['max_drawdown']:.1f}% | Current: {current_dd:.1f}%\n"
+        f"📋 Open: {n_positions} | Total: {state['total_trades']}\n"
+        f"₿ BTC: <code>${spot:,.0f}</code>\n"
+    )
+
+    # Position details
+    if state["positions"]:
+        msg += f"\n<b>Open Positions:</b>\n"
+        for i, pos in enumerate(state["positions"][:5], 1):
+            desc = pos.get("trade_desc", pos.get("desc", "?"))
+            entry = pos.get("entry_price", pos.get("entry", 0))
+            mid = pos.get("current_mid", entry)
+            upnl = pos.get("unrealized_pnl", 0)
+            mtm_src = pos.get("mtm_source", "?")
+            cost = pos.get("cost", 0)
+            pnl_pct = (upnl / cost * 100) if cost > 0 else 0
+
+            emoji = "🟢" if upnl >= 0 else "🔴"
+            msg += (f"  {emoji} {desc}\n"
+                    f"     Entry: {entry:.3f} | Mid: {mid:.3f} [{mtm_src}]\n"
+                    f"     PnL: ${upnl:+.2f} ({pnl_pct:+.1f}%)\n")
+
+    # Objective tracker
+    target = 10000
+    progress = (total_value / target) * 100
+    msg += (f"\n🎯 <b>Objective:</b> ${total_value:.0f} / ${target:,} "
+            f"({progress:.1f}%)\n")
+
+    send_telegram(msg)
+
+
+def send_opportunity_report(opportunities: list):
+    """Send a structured report of current trading opportunities."""
+    if not opportunities:
+        return
+
+    msg = f"🔍 <b>Market Scanner</b> — {len(opportunities)} opportunities\n\n"
+
+    for i, opp in enumerate(opportunities[:8], 1):
+        direction_emoji = "🟢" if opp["direction"] == "BUY_YES" else "🔴"
+        msg += (
+            f"{i}. {direction_emoji} <b>{opp['trade_desc']}</b>\n"
+            f"   Edge: {opp['edge']:.1f}% | Win: {opp['win_probability']:.0f}%\n"
+            f"   PM: {opp['pm_prob']:.0f}% vs Model: {opp['model_prob']:.0f}%\n"
+            f"   Size: ${opp['position_usd']:.2f} | Kelly: {opp['kelly']:.1%}\n"
+            f"   IV: {opp['iv_used']:.1f}% | DTE: {opp['dte_days']:.0f}d\n\n"
+        )
+
+    send_telegram(msg)
 
 
 # ─── Main Bot Loop ────────────────────────────────────────────────────────────
@@ -751,56 +1150,62 @@ def run_scan(state):
 
     log.info(f"BTC Spot: ${spot:,.2f}")
 
-    # 2. Settle expired positions
-    settle_expired_positions(state, spot)
+    # 2. 🔴 FIX #1+2: Full position management (MTM + exits + settlement)
+    manage_positions(state, spot)
 
-    # 3. Fetch IV surface
+    # 3. 🟠 FIX #5: Update drawdown on total portfolio value
+    update_drawdown(state)
+
+    # 4. Fetch IV surface
     iv_points = fetch_deribit_iv_surface()
     if not iv_points:
         log.warning("No IV data available, skipping market analysis")
+        save_state(state)
         return
 
-    # 4. Fetch Polymarket markets
+    # 5. 🟡 FIX #7: Fetch Polymarket markets (hybrid discovery)
     markets = fetch_btc_barrier_markets()
     if not markets:
         log.warning("No Polymarket markets found")
+        save_state(state)
         return
 
-    # 5. Analyze each market
-    current_exposure = sum(p["cost"] for p in state["positions"])
+    # 6. Analyze each market
+    current_exposure = sum(p.get("cost", 0) for p in state["positions"])
+    n_open = len(state["positions"])
     opportunities = []
 
     for market in markets:
-        opp = analyze_market(market, spot, iv_points, state["capital"], current_exposure)
+        opp = analyze_market(market, spot, iv_points, state["capital"],
+                             current_exposure, n_open)
         if opp:
             opportunities.append(opp)
 
-    # 6. Sort by edge (best first)
+    # 7. Sort by adjusted edge (best first)
     opportunities.sort(key=lambda o: o["adjusted_edge"], reverse=True)
 
     log.info(f"Found {len(opportunities)} tradeable opportunities")
-    
-    # 6.5 Send daily summary of opportunities to Telegram
-    # Only send summary once per day (checking state to see if we already sent it)
-    now_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    last_summary_date = state.get("last_summary_date", "")
-    
-    if opportunities and now_date != last_summary_date:
-        summary_msg = f"🔍 <b>Market Scanner Update</b> ({len(opportunities)} opps found)\n\n"
-        for i, opp in enumerate(opportunities[:5]): # show top 5
-            summary_msg += (f"{i+1}. <b>{opp['trade_desc']}</b>\n"
-                            f"   ▪️ Edge: {opp['edge']:.1f}% | Win: {opp['win_probability']:.0f}%\n")
-        
-        send_telegram(summary_msg)
-        state["last_summary_date"] = now_date
 
-    # 7. Execute top opportunities (avoid overconcentration)
-    already_traded_barriers = {p["barrier_price"] for p in state["positions"]}
+    # 7.5 Send opportunity report to Telegram (once per scan if new opps)
+    now_date = datetime.now(timezone.utc).strftime("%Y-%m-%d-%H")
+    last_opp_report = state.get("last_opp_report", "")
+
+    if opportunities and now_date != last_opp_report:
+        send_opportunity_report(opportunities)
+        state["last_opp_report"] = now_date
+
+    # 8. Execute top opportunities (avoid overconcentration)
+    already_traded_barriers = {p.get("barrier_price", p.get("barrier", 0)) for p in state["positions"]}
     trades_this_scan = 0
-    max_trades_per_scan = 3
+    max_trades_per_scan = 2  # More conservative
 
     for opp in opportunities:
         if trades_this_scan >= max_trades_per_scan:
+            break
+
+        # 🔴 FIX #4: Check max positions
+        if len(state["positions"]) >= CONFIG["max_positions"]:
+            log.info("Max positions reached, no more trades")
             break
 
         # Don't double up on same barrier
@@ -821,29 +1226,45 @@ def run_scan(state):
             # Telegram alert
             msg = (f"📈 <b>NEW TRADE</b>: {opp['trade_desc']}\n"
                    f"Edge: {opp['edge']:.1f}% | Win: {opp['win_probability']:.0f}%\n"
+                   f"Model: {opp['model_prob']:.1f}% vs PM: {opp['pm_prob']:.1f}%\n"
                    f"Cost: <code>${opp['position_usd']:.2f}</code> | "
-                   f"Profit if win: +{opp['profit_if_win_pct']:.0f}%")
+                   f"Profit if win: +{opp['profit_if_win_pct']:.0f}%\n"
+                   f"Kelly: {opp['kelly']:.1%} | IV: {opp['iv_used']:.1f}%")
             send_telegram(msg)
 
-    # 8. Report summary
+    # 9. 🟠 FIX #5: Update drawdown after trades
+    update_drawdown(state)
+
+    # 10. Report summary
     state["last_scan"] = datetime.now(timezone.utc).isoformat()
+    state["scans_count"] = state.get("scans_count", 0) + 1
+
+    portfolio_value = compute_portfolio_value(state)
+    total_return = (portfolio_value - state["initial_capital"]) / state["initial_capital"] * 100
     win_rate = state["wins"] / max(state["total_trades"], 1) * 100
-    total_return = (state["capital"] + current_exposure - state["initial_capital"]) / state["initial_capital"] * 100
+    unrealized = sum(p.get("unrealized_pnl", 0) for p in state["positions"])
 
     summary = (
         f"\n{'─'*50}\n"
-        f"📊 PORTFOLIO SUMMARY\n"
-        f"  Capital:     ${state['capital']:.2f}\n"
+        f"📊 PORTFOLIO SUMMARY (v2.0)\n"
+        f"  Portfolio:   ${portfolio_value:.2f}\n"
+        f"  Cash:        ${state['capital']:.2f}\n"
         f"  Exposure:    ${current_exposure:.2f}\n"
-        f"  Total Value: ${state['capital'] + current_exposure:.2f}\n"
-        f"  Total PnL:   ${state['total_pnl']:+.2f}\n"
+        f"  Unrealized:  ${unrealized:+.2f}\n"
+        f"  Realized:    ${state['total_pnl']:+.2f}\n"
         f"  Return:      {total_return:+.1f}%\n"
         f"  Win Rate:    {win_rate:.0f}% ({state['wins']}W / {state['losses']}L)\n"
         f"  Max DD:      {state['max_drawdown']:.1f}%\n"
-        f"  Open Pos:    {len(state['positions'])}\n"
+        f"  Current DD:  {state.get('current_drawdown', 0):.1f}%\n"
+        f"  Open Pos:    {len(state['positions'])} / {CONFIG['max_positions']}\n"
+        f"  Scans:       {state.get('scans_count', 0)}\n"
         f"{'─'*50}"
     )
     log.info(summary)
+
+    # Send live portfolio report to Telegram every 6 scans (~30min at 5min interval)
+    if state.get("scans_count", 0) % 6 == 0:
+        send_live_portfolio_report(state, spot)
 
     save_state(state)
 
@@ -853,25 +1274,49 @@ def main():
     one_shot = "--once" in sys.argv
 
     log.info("=" * 60)
-    log.info("🤖 Polymarket BTC Autotrader v1.0")
+    log.info("🤖 Polymarket BTC Autotrader v2.0 (Quant-Grade)")
     log.info(f"  Capital:       ${CONFIG['starting_capital']:.2f}")
     log.info(f"  Mode:          {'PAPER' if CONFIG['dry_run'] else '⚠️  LIVE'}")
     log.info(f"  Scan interval: {CONFIG['scan_interval']}s ({CONFIG['scan_interval']//60}min)")
     log.info(f"  Min edge:      {CONFIG['min_edge_pct']}%")
-    log.info(f"  Kelly frac:    {CONFIG['kelly_fraction']}")
+    log.info(f"  Kelly frac:    {CONFIG['kelly_fraction']} (Quarter-Kelly)")
+    log.info(f"  Max pos size:  {CONFIG['max_position_pct']*100:.0f}% of capital")
+    log.info(f"  Max exposure:  {CONFIG['max_exposure_pct']*100:.0f}%")
+    log.info(f"  Max positions: {CONFIG['max_positions']}")
+    log.info(f"  TP/SL:         +{(CONFIG['take_profit_mult']-1)*100:.0f}% / -{(1-CONFIG['stop_loss_mult'])*100:.0f}%")
     log.info(f"  Telegram:      {'✅' if CONFIG['telegram_token'] else '❌ (not set)'}")
+    log.info(f"  FIXES:         MTM✅ Exits✅ European✅ Kelly✅ DD✅ Reconcile✅ Discovery✅")
     log.info("=" * 60)
 
     state = load_state()
+
+    # 🟠 FIX #6: Reconcile expired positions from downtime
+    spot = fetch_btc_spot()
+    if spot:
+        reconcile_on_startup(state, spot)
 
     if one_shot:
         run_scan(state)
         return
 
     # Startup notification
-    send_telegram("🤖 <b>Autotrader Started!</b>\n"
-                  f"Capital: ${state['capital']:.2f}\n"
-                  f"Mode: {'PAPER' if CONFIG['dry_run'] else 'LIVE'}")
+    portfolio_value = compute_portfolio_value(state)
+    send_telegram(
+        f"🤖 <b>Autotrader v2.0 Started!</b>\n"
+        f"{'━' * 28}\n"
+        f"💰 Portfolio: ${portfolio_value:.2f}\n"
+        f"💵 Cash: ${state['capital']:.2f}\n"
+        f"📋 Open: {len(state['positions'])} positions\n"
+        f"Mode: {'PAPER' if CONFIG['dry_run'] else '⚠️ LIVE'}\n"
+        f"\n<b>Quant Fixes Applied:</b>\n"
+        f"🔴 MTM via CLOB ✅\n"
+        f"🔴 TP/SL Active Exits ✅\n"
+        f"🔴 European-only Model ✅\n"
+        f"🔴 Quarter-Kelly Sizing ✅\n"
+        f"🟠 Portfolio-level DD ✅\n"
+        f"🟠 Startup Reconciliation ✅\n"
+        f"🟡 Hybrid Market Discovery ✅"
+    )
 
     # Main loop
     while True:
@@ -879,7 +1324,7 @@ def main():
             run_scan(state)
         except Exception as e:
             log.error(f"Scan error: {e}\n{traceback.format_exc()}")
-            send_telegram(f"⚠️ <b>Error:</b> {str(e)[:100]}")
+            send_telegram(f"⚠️ <b>Error:</b> {str(e)[:200]}")
 
         log.info(f"💤 Next scan in {CONFIG['scan_interval']}s...")
         time.sleep(CONFIG["scan_interval"])
