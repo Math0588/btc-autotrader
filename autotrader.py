@@ -60,10 +60,10 @@ CONFIG = {
     "starting_capital": float(os.getenv("STARTING_CAPITAL", "100")),
     "scan_interval": int(os.getenv("SCAN_INTERVAL", "300")),
     "min_edge_pct": float(os.getenv("MIN_EDGE", "3.0")),
-    "kelly_fraction": float(os.getenv("KELLY_FRAC", "0.25")),   # 🔴 FIX #4: Quarter-Kelly (was 0.40)
-    "max_position_pct": 0.08,        # 🔴 FIX #4: Max 8% per trade (was 25%)
-    "max_exposure_pct": 0.60,        # 🔴 FIX #4: Max 60% exposed (was 100%)
-    "max_positions": 5,              # 🔴 FIX #4: Max 5 simultaneous positions
+    "kelly_fraction": float(os.getenv("KELLY_FRAC", "0.50")),   # � AGGRESSIVE: Half-Kelly for max compounding
+    "max_position_pct": 0.30,        # � AGGRESSIVE: Max 30% per trade (was 8%)
+    "max_exposure_pct": 0.95,        # � AGGRESSIVE: 95% capital exposed (was 60%)
+    "max_positions": 5,              # Max 5 simultaneous positions
     "polymarket_fee_pct": 2.0,
     "risk_free_rate": 0.045,
     "btc_drift_real": 0.10,
@@ -73,9 +73,9 @@ CONFIG = {
     "min_volume": 1000,
     "min_win_prob": 0.15,
     "max_drawdown_pct": 30,
-    # 🔴 FIX #2 — Exit thresholds
-    "take_profit_mult": 1.60,        # Exit if price >= 1.6x entry (+60%)
-    "stop_loss_mult": 0.40,          # Exit if price <= 0.4x entry (-60%)
+    # � AGGRESSIVE Exits — Let winners run, widen stops
+    "take_profit_mult": 2.50,        # Exit if price >= 2.5x entry (+150%)
+    "stop_loss_mult": 0.25,          # Exit if price <= 0.25x entry (-75%)
     "time_decay_hours": 6,           # Exit if DTE < 6h and position weak
     "time_decay_price_thresh": 0.35, # "weak" = current_mid < 0.35
     "telegram_token": os.getenv("TELEGRAM_TOKEN", ""),
@@ -1279,7 +1279,7 @@ def main():
     log.info(f"  Mode:          {'PAPER' if CONFIG['dry_run'] else '⚠️  LIVE'}")
     log.info(f"  Scan interval: {CONFIG['scan_interval']}s ({CONFIG['scan_interval']//60}min)")
     log.info(f"  Min edge:      {CONFIG['min_edge_pct']}%")
-    log.info(f"  Kelly frac:    {CONFIG['kelly_fraction']} (Quarter-Kelly)")
+    log.info(f"  Kelly frac:    {CONFIG['kelly_fraction']} (Half-Kelly)")
     log.info(f"  Max pos size:  {CONFIG['max_position_pct']*100:.0f}% of capital")
     log.info(f"  Max exposure:  {CONFIG['max_exposure_pct']*100:.0f}%")
     log.info(f"  Max positions: {CONFIG['max_positions']}")
@@ -1310,9 +1310,9 @@ def main():
         f"Mode: {'PAPER' if CONFIG['dry_run'] else '⚠️ LIVE'}\n"
         f"\n<b>Quant Fixes Applied:</b>\n"
         f"🔴 MTM via CLOB ✅\n"
-        f"🔴 TP/SL Active Exits ✅\n"
+        f"🔴 TP/SL Aggressive (+150%/-75%) ✅\n"
         f"🔴 European-only Model ✅\n"
-        f"🔴 Quarter-Kelly Sizing ✅\n"
+        f"🔴 Half-Kelly Sizing ✅\n"
         f"🟠 Portfolio-level DD ✅\n"
         f"🟠 Startup Reconciliation ✅\n"
         f"🟡 Hybrid Market Discovery ✅"
