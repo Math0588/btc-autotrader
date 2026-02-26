@@ -38,6 +38,8 @@ import hashlib
 import requests
 import traceback
 import numpy as np
+import io
+import matplotlib.pyplot as plt
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from scipy.stats import norm
@@ -151,6 +153,26 @@ def send_telegram(message):
         }, timeout=10)
     except Exception as e:
         log.warning(f"Telegram error: {e}")
+
+
+def send_telegram_photo(photo_bytes: io.BytesIO, caption: str):
+    """Send a Telegram notification with a photo (graph/chart)."""
+    token = CONFIG["telegram_token"]
+    chat = CONFIG["telegram_chat"]
+    if not token or not chat:
+        return
+    try:
+        url = f"https://api.telegram.org/bot{token}/sendPhoto"
+        photo_bytes.seek(0)
+        requests.post(url, data={
+            "chat_id": chat,
+            "caption": caption,
+            "parse_mode": "HTML",
+        }, files={
+            "photo": ("chart.png", photo_bytes, "image/png")
+        }, timeout=15)
+    except Exception as e:
+        log.warning(f"Telegram photo error: {e}")
 
 
 # ─── Polymarket CLOB MTM ─────────────────────────────────────────────────────
@@ -488,6 +510,9 @@ def _parse_market(data):
             if tid:
                 token_ids.append(tid)
 
+    slug = data.get("slug", "") or data.get("market_slug", "")
+    url = f"https://polymarket.com/event/{slug}" if slug else ""
+
     return {
         "title": title,
         "condition_id": condition_id,
@@ -501,6 +526,7 @@ def _parse_market(data):
         "volume": volume,
         "liquidity": liquidity,
         "token_ids": token_ids,  # 🔴 FIX #1: store for CLOB MTM
+        "url": url,
     }
 
 
@@ -666,9 +692,13 @@ def execute_early_exit(state: dict, pos: dict, exit_price: float, reason: str):
              f"PnL: ${pnl:+.2f} | Capital: ${state['capital']:.2f}")
 
     # Telegram alert for early exit
+    url = pos.get('url', '')
+    desc = pos.get('trade_desc', pos.get('desc', ''))
+    link_html = f'<a href="{url}">{desc}</a>' if url else f'<b>{desc}</b>'
+
     pnl_pct = (pnl / cost * 100) if cost > 0 else 0
     msg = (f"{emoji} <b>EARLY EXIT [{reason}]</b>\n"
-           f"{pos.get('trade_desc', pos.get('desc', ''))}\n"
+           f"{link_html}\n"
            f"Entry: <code>{entry:.3f}</code> → Exit: <code>{exit_price:.3f}</code>\n"
            f"PnL: <code>${pnl:+.2f}</code> ({pnl_pct:+.1f}%)\n"
            f"Capital: <code>${state['capital']:.2f}</code>")
@@ -798,8 +828,13 @@ def settle_single_position(state: dict, pos: dict, spot: float, reason: str = "E
     log.info(f"{emoji} SETTLED [{reason}]: {pos.get('trade_desc', pos.get('desc', ''))} → {result} | "
              f"PnL: ${pnl:+.2f} | Capital: ${state['capital']:.2f}")
 
+    url = pos.get('url', '')
+    desc = pos.get('trade_desc', pos.get('desc', ''))
+    link_html = f'<a href="{url}">{desc}</a>' if url else f'<b>{desc}</b>'
+
     # Telegram alert
-    msg = (f"{emoji} <b>{result}</b> [{reason}]: {pos.get('trade_desc', pos.get('desc', ''))}\n"
+    msg = (f"{emoji} <b>{result}</b> [{reason}]\n"
+           f"{link_html}\n"
            f"PnL: <code>${pnl:+.2f}</code>\n"
            f"Capital: <code>${state['capital']:.2f}</code>")
     send_telegram(msg)
@@ -949,6 +984,7 @@ def analyze_market(market, spot, iv_points, capital, current_exposure, n_open_po
         "iv_used": round(iv, 2),
         "token_id": token_id,          # 🔴 FIX #1: for CLOB MTM
         "token_ids": token_ids,
+        "url": market.get("url", ""),
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -982,6 +1018,7 @@ def execute_paper_trade(state, opportunity):
         "pm_prob": opportunity["pm_prob"],
         "token_id": opportunity.get("token_id", ""),    # 🔴 FIX #1
         "token_ids": opportunity.get("token_ids", []),
+        "url": opportunity.get("url", ""),
         "expiry_dt": opportunity["expiry_dt"].isoformat() if isinstance(opportunity["expiry_dt"], datetime) else opportunity["expiry_dt"],
         "opened_at": datetime.now(timezone.utc).isoformat(),
         "status": "open",
@@ -1052,6 +1089,65 @@ def manage_positions(state, spot):
 
 # ─── Enhanced Telegram Reports ────────────────────────────────────────────────
 
+def generate_portfolio_chart(state: dict) -> io.BytesIO:
+    """Generate a matplotlib chart of the equity curve from closed trades."""
+    import matplotlib.dates as mdates
+    
+    buf = io.BytesIO()
+    if not state.get("closed_trades"):
+        # Not enough data
+        return buf
+        
+    closed = state["closed_trades"]
+    
+    times = [datetime.fromisoformat(state.get("created_at", datetime.now(timezone.utc).isoformat()))]
+    capitals = [state["initial_capital"]]
+    
+    current_cap = state["initial_capital"]
+    for t in closed:
+        settled_at_str = t.get("settled_at")
+        if not settled_at_str:
+            continue
+        try:
+            dt = datetime.fromisoformat(settled_at_str)
+            times.append(dt)
+            current_cap += t.get("pnl", 0)
+            capitals.append(current_cap)
+        except Exception:
+            pass
+            
+    # Add current point
+    times.append(datetime.now(timezone.utc))
+    capitals.append(compute_portfolio_value(state))
+    
+    plt.figure(figsize=(10, 5), facecolor='#1e1e2e')
+    ax = plt.gca()
+    ax.set_facecolor('#1e1e2e')
+    
+    plt.plot(times, capitals, color='#00ffcc', linewidth=2, marker='o', markersize=4)
+    plt.fill_between(times, capitals, min(capitals) * 0.95, color='#00ffcc', alpha=0.1)
+    
+    plt.title("Portfolio Equity Curve", color='white', pad=20, fontsize=14, fontweight='bold')
+    plt.ylabel("Value (USD)", color='#a6adc8', fontsize=12)
+    
+    ax.tick_params(axis='x', colors='#a6adc8')
+    ax.tick_params(axis='y', colors='#a6adc8')
+    
+    for spine in ax.spines.values():
+        spine.set_color('#313244')
+    ax.grid(color='#313244', linestyle='--', alpha=0.5)
+    
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d %H:%M'))
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    
+    plt.savefig(buf, format='png', dpi=100, bbox_inches='tight', facecolor='#1e1e2e')
+    plt.close()
+    
+    buf.seek(0)
+    return buf
+
+
 def send_live_portfolio_report(state: dict, spot: float):
     """
     Send a comprehensive portfolio report to Telegram.
@@ -1092,6 +1188,9 @@ def send_live_portfolio_report(state: dict, spot: float):
         msg += f"\n<b>Open Positions:</b>\n"
         for i, pos in enumerate(state["positions"][:5], 1):
             desc = pos.get("trade_desc", pos.get("desc", "?"))
+            url = pos.get("url", "")
+            desc_html = f'<a href="{url}">{desc}</a>' if url else desc
+
             entry = pos.get("entry_price", pos.get("entry", 0))
             mid = pos.get("current_mid", entry)
             upnl = pos.get("unrealized_pnl", 0)
@@ -1100,7 +1199,7 @@ def send_live_portfolio_report(state: dict, spot: float):
             pnl_pct = (upnl / cost * 100) if cost > 0 else 0
 
             emoji = "🟢" if upnl >= 0 else "🔴"
-            msg += (f"  {emoji} {desc}\n"
+            msg += (f"  {emoji} {desc_html}\n"
                     f"     Entry: {entry:.3f} | Mid: {mid:.3f} [{mtm_src}]\n"
                     f"     PnL: ${upnl:+.2f} ({pnl_pct:+.1f}%)\n")
 
@@ -1110,7 +1209,11 @@ def send_live_portfolio_report(state: dict, spot: float):
     msg += (f"\n🎯 <b>Objective:</b> ${total_value:.0f} / ${target:,} "
             f"({progress:.1f}%)\n")
 
-    send_telegram(msg)
+    chart = generate_portfolio_chart(state)
+    if chart.getbuffer().nbytes > 0:
+        send_telegram_photo(chart, msg)
+    else:
+        send_telegram(msg)
 
 
 def send_opportunity_report(opportunities: list):
@@ -1118,13 +1221,16 @@ def send_opportunity_report(opportunities: list):
     if not opportunities:
         return
 
-    msg = f"🔍 <b>Market Scanner</b> — {len(opportunities)} opportunities\n\n"
+    msg = f"🔍 <b>Market Scanner</b> — Top {min(len(opportunities), 8)} opportunité(s)\n\n"
 
     for i, opp in enumerate(opportunities[:8], 1):
         direction_emoji = "🟢" if opp["direction"] == "BUY_YES" else "🔴"
+        url = opp.get("url", "")
+        desc_html = f'<a href="{url}">{opp["trade_desc"]}</a>' if url else opp['trade_desc']
+
         msg += (
-            f"{i}. {direction_emoji} <b>{opp['trade_desc']}</b>\n"
-            f"   Edge: {opp['edge']:.1f}% | Win: {opp['win_probability']:.0f}%\n"
+            f"{i}. {direction_emoji} <b>{desc_html}</b>\n"
+            f"   Edge: <b>{opp['edge']:.1f}%</b> | Win: {opp['win_probability']:.0f}%\n"
             f"   PM: {opp['pm_prob']:.0f}% vs Model: {opp['model_prob']:.0f}%\n"
             f"   Size: ${opp['position_usd']:.2f} | Kelly: {opp['kelly']:.1%}\n"
             f"   IV: {opp['iv_used']:.1f}% | DTE: {opp['dte_days']:.0f}d\n\n"
@@ -1223,9 +1329,11 @@ def run_scan(state):
             already_traded_barriers.add(opp["barrier_price"])
             current_exposure += opp["position_usd"]
 
-            # Telegram alert
-            msg = (f"📈 <b>NEW TRADE</b>: {opp['trade_desc']}\n"
-                   f"Edge: {opp['edge']:.1f}% | Win: {opp['win_probability']:.0f}%\n"
+            url = opp.get("url", "")
+            desc_html = f'<a href="{url}">{opp["trade_desc"]}</a>' if url else opp['trade_desc']
+
+            msg = (f"📈 <b>NEW TRADE</b>: {desc_html}\n"
+                   f"Edge: <b>{opp['edge']:.1f}%</b> | Win: {opp['win_probability']:.0f}%\n"
                    f"Model: {opp['model_prob']:.1f}% vs PM: {opp['pm_prob']:.1f}%\n"
                    f"Cost: <code>${opp['position_usd']:.2f}</code> | "
                    f"Profit if win: +{opp['profit_if_win_pct']:.0f}%\n"
