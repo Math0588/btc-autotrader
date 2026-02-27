@@ -1272,13 +1272,21 @@ def handle_pnl_command():
     total_return = (total_value - state["initial_capital"]) / state["initial_capital"] * 100
     wr = state["wins"] / max(state["total_trades"], 1) * 100
 
+    # Calc Quick Stats for PnL
+    closed = state.get("closed_trades", [])
+    gross_profit = sum(t.get("pnl", 0) for t in closed if t.get("pnl", 0) > 0)
+    gross_loss = abs(sum(t.get("pnl", 0) for t in closed if t.get("pnl", 0) < 0))
+    profit_factor = gross_profit / gross_loss if gross_loss > 0 else (99.0 if gross_profit > 0 else 0.0)
+    total_history_trades = state["wins"] + state["losses"]
+    ev_per_trade = sum(t.get("pnl", 0) for t in closed) / total_history_trades if total_history_trades > 0 else 0
+
     msg += f"━━━━━━━━━━━━━━━━━━━━━\n"
     msg += f"💰 Capital libre: <code>${state['capital']:.2f}</code>\n"
     msg += f"📦 Exposition: <code>${exposure:.2f}</code>\n"
     msg += f"📈 Unrealized PnL: <code>${total_mtm_pnl:+.2f}</code>\n"
     msg += f"💼 <b>Valeur totale: <code>${total_value:.2f}</code></b>\n"
     msg += f"📊 Return: <code>{total_return:+.1f}%</code>\n"
-    msg += f"🏆 Win Rate: {wr:.0f}% ({state['wins']}W/{state['losses']}L)\n"
+    msg += f"🏆 Win Rate: {wr:.0f}% | PF: {profit_factor:.1f} | EV: ${ev_per_trade:+.2f}\n"
     msg += f"📉 Max DD: {state['max_drawdown']:.1f}%\n"
     msg += f"🔄 Scans: {state.get('scans_count', 0)}"
 
@@ -1299,11 +1307,30 @@ def handle_status_command():
     total_value = state["capital"] + exposure
     ret = (total_value - state["initial_capital"]) / state["initial_capital"] * 100
 
-    msg = (f"🤖 <b>Status</b>\n"
-           f"Capital: ${total_value:.2f} ({ret:+.1f}%)\n"
-           f"Positions: {len(state.get('positions', []))}\n"
-           f"W/L: {state['wins']}/{state['losses']}\n"
-           f"Scans: {state.get('scans_count', 0)}")
+    closed = state.get("closed_trades", [])
+    gross_profit = sum(t.get("pnl", 0) for t in closed if t.get("pnl", 0) > 0)
+    gross_loss = abs(sum(t.get("pnl", 0) for t in closed if t.get("pnl", 0) < 0))
+    
+    avg_win = gross_profit / state["wins"] if state["wins"] > 0 else 0
+    avg_loss = gross_loss / state["losses"] if state["losses"] > 0 else 0
+    profit_factor = gross_profit / gross_loss if gross_loss > 0 else (999.0 if gross_profit > 0 else 0.0)
+    
+    total_trades = state["wins"] + state["losses"]
+    ev_per_trade = sum(t.get("pnl", 0) for t in closed) / total_trades if total_trades > 0 else 0
+    win_rate = (state["wins"] / total_trades) * 100 if total_trades > 0 else 0
+
+    msg = (f"🤖 <b>Status Quantitatif</b>\n"
+           f"Capital Actuel: <code>${total_value:.2f}</code> ({ret:+.1f}%)\n"
+           f"Max Drawdown: <code>{state.get('max_drawdown', 0):.1f}%</code>\n\n"
+           f"📊 <b>Performance Historique</b>\n"
+           f"Total Trades Clos: {len(closed)} (Actifs: {len(state.get('positions', []))})\n"
+           f"Win Rate: <b>{win_rate:.1f}%</b> ({state['wins']}W / {state['losses']}L)\n"
+           f"Moyenne Gain: 🟢 ${avg_win:.2f}\n"
+           f"Moyenne Perte: 🔴 -${avg_loss:.2f}\n"
+           f"Expected Value (EV): <b>${ev_per_trade:+.2f}/trade</b>\n"
+           f"Profit Factor: {profit_factor:.2f}\n\n"
+           f"🔄 Scans Complétés: {state.get('scans_count', 0)}\n"
+           f"⏱ Dernier: {state.get('last_scan', '')[:16].replace('T', ' ')}")
     tg_send(msg)
 
 
