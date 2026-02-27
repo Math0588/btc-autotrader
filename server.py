@@ -782,8 +782,8 @@ def settle(state, spot, iv_pts):
             # Captured 60%+ of max profit — diminishing returns to hold
             tp_triggered = True
             tp_reason = f"Profit capture {profit_capture_ratio*100:.0f}% of max"
-        elif current_rr < 0.2 and unrealized_pnl_pct > 0:
-            # We are risking $1 to win < $0.20 -> Bad R:R, take the profit
+        elif current_rr < 0.5 and unrealized_pnl_pct > 0:
+            # We are risking $1 to win < $0.50 -> Bad R:R, take the profit
             tp_triggered = True
             tp_reason = f"Poor current R:R ({current_rr:.2f}) - locked in profit"
         elif time_elapsed_ratio > 0.85 and unrealized_pnl_pct > 0:
