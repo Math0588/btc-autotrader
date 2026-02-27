@@ -168,8 +168,11 @@ def tg_send_chart():
                        fontsize=13, fontweight='bold', pad=10)
 
         # Cumulative PnL
-        colors = ['#10b981' if p >= 0 else '#ef4444' for p in pnls]
-        ax2.bar(times, pnls, color=colors, width=0.01, alpha=0.8)
+        ax2.plot(times, pnls, color='#3b82f6', linewidth=2)
+        ax2.fill_between(times, 0, pnls, where=[p >= 0 for p in pnls], 
+                         alpha=0.3, color='#10b981')
+        ax2.fill_between(times, 0, pnls, where=[p < 0 for p in pnls], 
+                         alpha=0.3, color='#ef4444')
         ax2.axhline(y=0, color='#64748b', linewidth=0.5)
         ax2.set_ylabel('Cumulative PnL ($)', color='#e2e8f0', fontsize=10)
         ax2.set_xlabel('Time', color='#e2e8f0', fontsize=10)
@@ -345,6 +348,7 @@ def parse_market(data, token_type="BTC"):
         "dte": round(dte, 2),
         "vol": float(data.get("volume",0) or data.get("volumeNum",0) or 0),
         "liq": float(data.get("liquidity",0) or data.get("liquidityNum",0) or 0),
+        "slug": data.get("slug", ""),
     }
 
 
@@ -630,10 +634,11 @@ def analyze(market, spot, iv_pts, capital, exposure):
         return None
 
     pos = min(kelly * capital, max_pos, remaining)
+    pos = max(pos, 10.0) # Simulate real money with minimum $10 bet
     n = int(pos / entry)
     if n < 1:
-        return None
-
+        n = 1 # Force at least 1 contract
+    
     actual = n * entry
     e_pnl = win_p * payout * n - (1-win_p) * cost * n
 
@@ -648,6 +653,7 @@ def analyze(market, spot, iv_pts, capital, exposure):
         "win_prob": round(win_p*100, 1),
         "profit_pct": round((payout/cost)*100, 0),
         "n": n, "cost": round(actual, 2), "e_pnl": round(e_pnl, 2),
+        "slug": market.get("slug", ""),
         "liq": market["liq"],
     }
 
@@ -666,6 +672,7 @@ def execute(state, opp):
         "profit_pct": opp["profit_pct"], "e_pnl": opp["e_pnl"],
         "entry_edge": opp.get("edge_raw", opp["edge"] / 100),   # Store for dynamic TP/SL
         "entry_dte": opp["dte"],                                  # Store for dynamic TP/SL
+        "slug": opp.get("slug", ""),
         "expiry_dt": opp["expiry_dt"].isoformat() if isinstance(opp["expiry_dt"], datetime) else opp["expiry_dt"],
         "opened_at": datetime.now(timezone.utc).isoformat(), "status": "open",
     }
@@ -674,7 +681,10 @@ def execute(state, opp):
     state["total_trades"] += 1
     log.info(f"TRADE: {opp['desc']} | ${opp['cost']:.2f} | Win={opp['win_prob']:.0f}% | "
              f"Edge={opp['edge']:.1f}% | +{opp['profit_pct']:.0f}% if win")
-    tg_send(f"📈 <b>NEW TRADE</b>: {opp['desc']}\n"
+    
+    pm_url = f"https://polymarket.com/event/{opp.get('slug', '')}" if opp.get('slug') else "Polymarket"
+    
+    tg_send(f"📈 <b>NEW TRADE</b>: <a href=\"{pm_url}\">{opp['desc']}</a>\n"
             f"Edge: {opp['edge']:.1f}% | Win: {opp['win_prob']:.0f}%\n"
             f"Cost: <code>${opp['cost']:.2f}</code>\n"
             f"Exits: Dynamic (edge-decay TP + thesis-invalidation SL)")
@@ -758,7 +768,8 @@ def settle(state, spot, iv_pts):
         tp_triggered = False
         tp_reason = ""
         
-        if current_edge_pct <= tp_edge_threshold and unrealized_pnl_pct > 0:
+        # Don't take micro-profits unless edge is completely gone. Minimum 10% PnL.
+        if current_edge_pct <= tp_edge_threshold and unrealized_pnl_pct > 10:
             tp_triggered = True
             tp_reason = f"Edge decay ({current_edge_pct:.1f}% < {tp_edge_threshold:.1f}% threshold)"
         elif profit_capture_ratio >= 0.6 and unrealized_pnl_pct > 5:
@@ -844,10 +855,12 @@ def settle(state, spot, iv_pts):
         # Position remains open
         still_open.append(pos)
         
-    # Drawdown tracking updates
-    if state["capital"] > state["peak_capital"]:
-        state["peak_capital"] = state["capital"]
-    state["max_drawdown"] = max(state["max_drawdown"], (1 - state["capital"] / state["peak_capital"]) * 100)
+    # Drawdown tracking updates: use total portfolio value, not cash
+    total_val = state["capital"] + sum(p["cost"] for p in still_open)
+    if total_val > state.setdefault("peak_capital", CONFIG["starting_capital"]):
+        state["peak_capital"] = total_val
+    if state["peak_capital"] > 0:
+        state["max_drawdown"] = max(state.setdefault("max_drawdown", 0), (1 - total_val / state["peak_capital"]) * 100)
 
     state["positions"] = still_open
 
