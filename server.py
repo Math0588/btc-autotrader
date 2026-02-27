@@ -48,7 +48,7 @@ CONFIG = {
     "max_position_pct": 0.50,                                 # Max 50% capital per trade (Aggressive)
     "max_exposure_pct": 1.00,                                 # 100% capital efficiency (No cash reserve)
     "min_profit_pct": 10.0,                                   # Minimum raw return
-    "assumed_slippage": 0.015,                                # Assume 1.5 cents slip on polymarket (execution cost)
+    "assumed_slippage": 0.005,                                # Assume 0.5 cents slip on polymarket (execution cost / crossing spread)
     "polymarket_fee_pct": 0.0,                                # Polymarket has no fees, only spread which we account for via slippage
     "risk_free_rate": 0.045,
     "min_dte": 0.5,                                           # Allow closer to expiry
