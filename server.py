@@ -268,10 +268,11 @@ def fetch_markets():
             events = pm_get(f"{POLYMARKET_GAMMA_API}/events", params={"slug": slug})
             if not events or not isinstance(events, list) or len(events) == 0:
                 continue
+            event_slug = events[0].get("slug", slug)
             for sm in events[0].get("markets", []):
                 if sm.get("closed", False):
                     continue
-                p = parse_market(sm)
+                p = parse_market(sm, event_slug=event_slug)
                 if p and p["cid"] not in seen:
                     seen.add(p["cid"])
                     markets.append(p)
@@ -285,7 +286,7 @@ def fetch_markets():
     return markets
 
 
-def parse_market(data, token_type="BTC"):
+def parse_market(data, event_slug="", token_type="BTC"):
     import re
     title = data.get("question", "") or data.get("title", "") or ""
     tl = title.lower()
@@ -348,7 +349,7 @@ def parse_market(data, token_type="BTC"):
         "dte": round(dte, 2),
         "vol": float(data.get("volume",0) or data.get("volumeNum",0) or 0),
         "liq": float(data.get("liquidity",0) or data.get("liquidityNum",0) or 0),
-        "slug": data.get("slug", ""),
+        "slug": event_slug or data.get("slug", ""),
     }
 
 
@@ -606,7 +607,7 @@ def analyze(market, spot, iv_pts, capital, exposure):
         return None
 
     profit_pct = (payout / cost) * 100
-    if profit_pct < CONFIG.get("min_profit_pct", 100): # Enforce R:R >= 1.0 (profit > 100% of cost)
+    if profit_pct < CONFIG.get("min_profit_pct", 10.0): # Use base 10% min profit
         return None
 
     b = payout / cost
@@ -784,8 +785,8 @@ def settle(state, spot, iv_pts):
             # Captured 60%+ of max profit — diminishing returns to hold
             tp_triggered = True
             tp_reason = f"Profit capture {profit_capture_ratio*100:.0f}% of max"
-        elif current_rr < 0.5 and unrealized_pnl_pct > 0:
-            # We are risking $1 to win < $0.50 -> Bad R:R, take the profit
+        elif current_rr < 0.15 and unrealized_pnl_pct > 5:
+            # We are risking $1 to win < $0.15 -> Horrible absolute R:R, secure the bag
             tp_triggered = True
             tp_reason = f"Poor current R:R ({current_rr:.2f}) - locked in profit"
         elif time_elapsed_ratio > 0.85 and unrealized_pnl_pct > 0:
