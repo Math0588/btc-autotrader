@@ -920,6 +920,9 @@ def run_scan(state):
 
     opps.sort(key=lambda o: o["edge"] * o["win_prob"], reverse=True)  # Score = edge × win probability
     log.info(f"Opportunities: {len(opps)} tradeable")
+    
+    state["last_opps"] = opps
+    state["last_spot"] = spot
 
     traded_barriers = {p["barrier"] for p in state["positions"]}
     trades_done = 0
@@ -1248,10 +1251,18 @@ def handle_pnl_command():
             mtm = mtm_position(pos, spot, iv_pts)
             total_mtm_pnl += mtm["unrealized_pnl"]
             emoji = "🟢" if mtm["unrealized_pnl"] >= 0 else "🔴"
+            pm_url = f"https://polymarket.com/event/{pos.get('slug', '')}" if pos.get('slug') else ""
 
-            msg += f"{emoji} <b>{pos['desc']}</b>\n"
-            msg += f"   Entry: {pos['entry']:.2f} → Fair: {mtm['fair_value']:.2f}\n"
+            # Calculate precise R:R for display
+            max_payout = pos["n"] * 1.0 * (1 - CONFIG["polymarket_fee_pct"] / 100)
+            remaining_upside = max_payout - mtm["mtm_value"]
+            current_rr = remaining_upside / mtm["mtm_value"] if mtm["mtm_value"] > 0 else 0
+
+            title = f"<a href=\"{pm_url}\">{pos['desc']}</a>" if pm_url else pos['desc']
+            msg += f"{emoji} <b>{title}</b>\n"
+            msg += f"   Entry: {pos['entry']:.2f} → Fair: {mtm['fair_value']:.2f} (Model: {mtm['model_prob']:.1f}%)\n"
             msg += f"   PnL: <code>${mtm['unrealized_pnl']:+.2f}</code> ({mtm['pnl_pct']:+.1f}%)\n"
+            msg += f"   Current R:R: {current_rr:.2f} <i>(Risque ${mtm['mtm_value']:.1f} → Gain Potentiel +${remaining_upside:.1f})</i>\n"
             msg += f"   DTE: {mtm['dte_hours']:.0f}h\n\n"
 
     total_value = state["capital"] + exposure + total_mtm_pnl
@@ -1293,6 +1304,30 @@ def handle_status_command():
     tg_send(msg)
 
 
+def handle_edges_command():
+    """Handle /edges command: list current top opportunities."""
+    state = BOT_STATE
+    if not state or "last_opps" not in state:
+        tg_send("⏳ Patience, le bot n'a pas encore terminé son premier scan de marché.")
+        return
+    opps = state["last_opps"]
+    spot = state.get("last_spot", 0)
+    if not opps:
+        tg_send(f"₿ BTC: <code>${spot:,.0f}</code>\n\n<i>Aucune opportunité avec un Edge suffisant en ce moment. Les marchés sont efficients.</i>")
+        return
+    
+    msg = f"🔍 <b>Top Opportunités Actuelles</b>\nBTC: <code>${spot:,.0f}</code>\n━━━━━━━━━━━━━━━━━━━━━\n"
+    for o in opps[:5]:
+        pm_url = f"https://polymarket.com/event/{o.get('slug', '')}" if o.get('slug') else ""
+        title = f"<a href=\"{pm_url}\">{o['desc']}</a>" if pm_url else f"<b>{o['desc']}</b>"
+        msg += f"{title}\n"
+        msg += f"   Edge: <b>{o['edge']:.1f}%</b> | Win Prob: {o['win_prob']:.0f}%\n"
+        msg += f"   Prix d'entrée estimé: ${o['entry']:.2f}\n"
+        msg += f"   Rendement potentiel: +{o['profit_pct']:.0f}% (R:R = {o['profit_pct']/100:.2f})\n\n"
+        
+    msg += f"<i>Note: Ces trades ne sont pris que si toutes les conditions de liquidité et de taille de bag sont réunies.</i>"
+    tg_send(msg)
+
 def telegram_poller():
     """Poll Telegram for commands like /pnl, /status, /positions."""
     global TG_LAST_UPDATE
@@ -1327,11 +1362,17 @@ def telegram_poller():
                     handle_status_command()
                 elif text == "/positions":
                     handle_pnl_command()  # Same as /pnl
+                elif text == "/chart":
+                    tg_send_chart()
+                elif text in ["/edges", "/scan", "/opps"]:
+                    handle_edges_command()
                 elif text == "/help" or text == "/start":
                     tg_send(
                         "🤖 <b>Polymarket Autotrader</b>\n\n"
                         "Commandes disponibles:\n"
-                        "/pnl — PnL live mark-to-market\n"
+                        "/pnl — PnL live mark-to-market détaillé\n"
+                        "/chart — Générer le graphique PnL & Valeur\n"
+                        "/edges — Voir les top 5 opportunités du marché\n"
                         "/status — Status rapide\n"
                         "/positions — Positions ouvertes\n"
                         "/help — Cette aide"
