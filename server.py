@@ -741,8 +741,9 @@ def settle(state, spot, iv_pts):
         current_edge = current_model_prob - pos["entry"]
         current_edge_pct = current_edge * 100
         
-        # Simulated sell value
-        sell_value = (pos["n"] * current_model_prob) * (1 - CONFIG["polymarket_fee_pct"] / 100)
+        # Real-world Simulated sell value (must account for crossing the spread / slippage on exit)
+        exit_price = max(0.01, current_model_prob - CONFIG["assumed_slippage"])
+        sell_value = (pos["n"] * exit_price) * (1 - CONFIG["polymarket_fee_pct"] / 100)
         unrealized_pnl_pct = (sell_value / pos["cost"]) * 100 - 100
         pnl = sell_value - pos["cost"]
 
@@ -1202,11 +1203,12 @@ def mtm_position(pos, spot, iv_pts):
     model_prob_above = bs_prob(spot, barrier, dte, sigma, CONFIG["risk_free_rate"], "above")
 
     if direction == "BUY_YES":
-        # We bought YES, current fair value = model probability
-        fair_value_per_contract = model_prob_above
+        # We bought YES. To sell it, we must cross the spread (hit the bid).
+        # Theoretical fair value is model_prob, but we can only sell at model_prob - slippage
+        fair_value_per_contract = max(0.001, model_prob_above - CONFIG["assumed_slippage"])
     else:
-        # We bought NO, current fair value = 1 - model probability
-        fair_value_per_contract = 1 - model_prob_above
+        # We bought NO.
+        fair_value_per_contract = max(0.001, (1 - model_prob_above) - CONFIG["assumed_slippage"])
 
     # Mark-to-market PnL
     mtm_value = fair_value_per_contract * n  # Total value of position at fair price
