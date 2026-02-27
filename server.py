@@ -44,9 +44,9 @@ CONFIG = {
     "scan_interval": int(os.getenv("SCAN_INTERVAL", "300")),
     "min_edge_pct": float(os.getenv("MIN_EDGE", "2.0")),      # 2% edge min to enter
     "exit_edge_pct": 0.5,                                     # RECORRELATION: Exit when edge drops below 0.5% (fair value reached)
-    "kelly_fraction": 0.50,                                   # Half-Kelly (Optimum for rapid growth without guaranteed ruin)
-    "max_position_pct": 0.50,                                 # Max 50% capital per trade (prevent 1 black swan wiping 100%)
-    "max_exposure_pct": 0.95,                                 # Keep 5% cash minimum
+    "kelly_fraction": 0.35,                                   # Kelly plus strict (avoid massive variance drag on small win rates)
+    "max_position_pct": 0.30,                                 # Max 30% capital per trade (prevent 1 black swan wiping account)
+    "max_exposure_pct": 0.85,                                 # Keep 15% cash minimum
     "min_profit_pct": 10.0,                                   # Minimum raw return
     "assumed_slippage": 0.015,                                # Assume 1.5 cents slip on polymarket (execution cost)
     "polymarket_fee_pct": 0.0,                                # Polymarket has no fees, only spread which we account for via slippage
@@ -55,7 +55,7 @@ CONFIG = {
     "max_dte": 60,
     "min_liquidity": 2000,
     "min_volume": 500,
-    "min_win_prob": 0.25,                                     # Cut absolute lotteries, but allow 25% if heavily mispriced
+    "min_win_prob": 0.40,                                     # No lotteries. Minimum 40% probability of success to play.
     "stop_loss_prob": 0.10,                                   # THESIS INVALIDATION: If our model says < 10% chance, cut loss and run!
     "max_drawdown_pct": 50,
     "keepalive_interval": int(os.getenv("KEEPALIVE_INTERVAL", "600")),  # 10 min self-ping
