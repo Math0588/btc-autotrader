@@ -44,9 +44,9 @@ CONFIG = {
     "scan_interval": int(os.getenv("SCAN_INTERVAL", "300")),
     "min_edge_pct": float(os.getenv("MIN_EDGE", "2.0")),      # 2% edge min to enter
     "exit_edge_pct": 0.5,                                     # RECORRELATION: Exit when edge drops below 0.5% (fair value reached)
-    "kelly_fraction": 0.35,                                   # Kelly plus strict (avoid massive variance drag on small win rates)
-    "max_position_pct": 0.30,                                 # Max 30% capital per trade (prevent 1 black swan wiping account)
-    "max_exposure_pct": 0.85,                                 # Keep 15% cash minimum
+    "kelly_fraction": 0.50,                                   # Aggressive Half-Kelly (Optimum for rapid growth without guaranteed ruin)
+    "max_position_pct": 0.50,                                 # Max 50% capital per trade (Aggressive)
+    "max_exposure_pct": 1.00,                                 # 100% capital efficiency (No cash reserve)
     "min_profit_pct": 10.0,                                   # Minimum raw return
     "assumed_slippage": 0.015,                                # Assume 1.5 cents slip on polymarket (execution cost)
     "polymarket_fee_pct": 0.0,                                # Polymarket has no fees, only spread which we account for via slippage
