@@ -606,7 +606,7 @@ def analyze(market, spot, iv_pts, capital, exposure):
         return None
 
     profit_pct = (payout / cost) * 100
-    if profit_pct < CONFIG["min_profit_pct"]:
+    if profit_pct < CONFIG.get("min_profit_pct", 100): # Enforce R:R >= 1.0 (profit > 100% of cost)
         return None
 
     b = payout / cost
@@ -765,6 +765,12 @@ def settle(state, spot, iv_pts):
         max_possible_pnl_pct = (1.0 / pos["entry"] - 1) * 100  # Max profit if win at expiry
         profit_capture_ratio = unrealized_pnl_pct / max(max_possible_pnl_pct, 1) if max_possible_pnl_pct > 0 else 0
         
+        # Current Risk:Reward (What we risk holding vs What we can still win)
+        # We risk `sell_value` (if it goes to 0) to win `max_payout - sell_value`
+        max_payout = pos["n"] * 1.0 * (1 - CONFIG["polymarket_fee_pct"] / 100)
+        remaining_upside = max_payout - sell_value
+        current_rr = remaining_upside / sell_value if sell_value > 0 else 0
+        
         tp_triggered = False
         tp_reason = ""
         
@@ -776,6 +782,10 @@ def settle(state, spot, iv_pts):
             # Captured 60%+ of max profit — diminishing returns to hold
             tp_triggered = True
             tp_reason = f"Profit capture {profit_capture_ratio*100:.0f}% of max"
+        elif current_rr < 0.2 and unrealized_pnl_pct > 0:
+            # We are risking $1 to win < $0.20 -> Bad R:R, take the profit
+            tp_triggered = True
+            tp_reason = f"Poor current R:R ({current_rr:.2f}) - locked in profit"
         elif time_elapsed_ratio > 0.85 and unrealized_pnl_pct > 0:
             # Very close to expiry with ANY profit — gamma risk is too high
             tp_triggered = True
