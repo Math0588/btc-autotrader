@@ -18,6 +18,7 @@ import logging
 import threading
 import traceback
 import io
+import csv
 import base64
 import requests
 import numpy as np
@@ -41,7 +42,7 @@ log = logging.getLogger("autotrader")
 
 CONFIG = {
     "starting_capital": float(os.getenv("STARTING_CAPITAL", "100")),
-    "scan_interval": int(os.getenv("SCAN_INTERVAL", "300")),
+    "scan_interval": int(os.getenv("SCAN_INTERVAL", "45")),
     "min_edge_pct": float(os.getenv("MIN_EDGE", "2.0")),      # 2% edge min to enter
     "exit_edge_pct": 0.5,                                     # RECORRELATION: Exit when edge drops below 0.5% (fair value reached)
     "kelly_fraction": 0.50,                                   # Aggressive Half-Kelly (Optimum for rapid growth without guaranteed ruin)
@@ -127,6 +128,18 @@ def tg_send(message):
                       timeout=10)
     except Exception:
         pass
+
+def tg_send_document(filename, file_bytes):
+    t, c = CONFIG["telegram_token"], CONFIG["telegram_chat"]
+    if not t or not c:
+        return
+    try:
+        url = f"https://api.telegram.org/bot{t}/sendDocument"
+        files = {"document": (filename, file_bytes)}
+        data = {"chat_id": c}
+        requests.post(url, data=data, files=files, timeout=20)
+    except Exception as e:
+        log.error(f"TG send document error: {e}")
 
 
 def tg_send_chart():
@@ -1358,6 +1371,54 @@ def handle_edges_command():
     msg += f"<i>Note: Ces trades ne sont pris que si toutes les conditions de liquidité et de taille de bag sont réunies.</i>"
     tg_send(msg)
 
+def handle_export_command():
+    """Handle /export command: send CSV of closed trades."""
+    state = BOT_STATE
+    if not state or not state.get("closed_trades"):
+        tg_send("❌ Aucun historique de trades disponible pour l'export.")
+        return
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Write header
+    writer.writerow([
+        "ID", "Titre", "URL", "Date Entree", "Date Sortie",
+        "Sens", "Contrats", "Prix Entree ($)", "Prix Sortie ($)",
+        "Cout ($)", "PnL ($)", "Rendement (%)", "Resultat", "Raison Expiration"
+    ])
+    
+    for t in state["closed_trades"]:
+        title = t.get("desc", t.get("title", ""))
+        url = f"https://polymarket.com/event/{t.get('slug', '')}" if t.get('slug') else ""
+        open_dt = t.get("opened_at", "")[:16].replace("T", " ")
+        close_dt = t.get("settled_at", "")[:16].replace("T", " ")
+        res = t.get("result", "")
+        cost = t.get("cost", 0)
+        pnl = t.get("pnl", 0)
+        roi = (pnl / cost * 100) if cost > 0 else 0
+        
+        writer.writerow([
+            t.get("id", ""),
+            title,
+            url,
+            open_dt,
+            close_dt,
+            t.get("direction", ""),
+            t.get("n", 0),
+            round(t.get("entry", 0), 4),
+            round(t.get("exit_price", 0), 4) if "exit_price" in t else "",
+            round(cost, 2),
+            round(pnl, 2),
+            round(roi, 1),
+            res,
+            t.get("exit_reason", "")
+        ])
+
+    csv_bytes = io.BytesIO(output.getvalue().encode('utf-8'))
+    csv_bytes.seek(0)
+    tg_send_document("quant_trades_export.csv", csv_bytes)
+
 def telegram_poller():
     """Poll Telegram for commands like /pnl, /status, /positions."""
     global TG_LAST_UPDATE
@@ -1396,6 +1457,8 @@ def telegram_poller():
                     tg_send_chart()
                 elif text in ["/edges", "/scan", "/opps"]:
                     handle_edges_command()
+                elif text == "/export":
+                    handle_export_command()
                 elif text == "/help" or text == "/start":
                     tg_send(
                         "🤖 <b>Polymarket Autotrader — Help</b>\n\n"
@@ -1404,6 +1467,7 @@ def telegram_poller():
                         "📈 <b>/chart</b> — Générer le graphique de croissance du portefeuille et l'historique PnL\n"
                         "🔍 <b>/edges</b> (ou <b>/scan</b>, <b>/opps</b>) — Flasher le marché instantanément et afficher les 5 meilleurs arbitrages Polymarket actuels selon le modèle\n"
                         "🤖 <b>/status</b> — Résumé rapide (Capital, Exposure, Win Rate, Drawdown, Scans)\n"
+                        "📁 <b>/export</b> — Exporter tout l'historique de trading en fichier Excel/CSV\n"
                         "ℹ️ <b>/help</b> (ou <b>/start</b>) — Afficher ce menu d'aide"
                     )
 
