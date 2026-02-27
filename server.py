@@ -1368,14 +1368,13 @@ def telegram_poller():
                     handle_edges_command()
                 elif text == "/help" or text == "/start":
                     tg_send(
-                        "🤖 <b>Polymarket Autotrader</b>\n\n"
-                        "Commandes disponibles:\n"
-                        "/pnl — PnL live mark-to-market détaillé\n"
-                        "/chart — Générer le graphique PnL & Valeur\n"
-                        "/edges — Voir les top 5 opportunités du marché\n"
-                        "/status — Status rapide\n"
-                        "/positions — Positions ouvertes\n"
-                        "/help — Cette aide"
+                        "🤖 <b>Polymarket Autotrader — Help</b>\n\n"
+                        "<b>Commandes disponibles:</b>\n"
+                        "📊 <b>/pnl</b> (ou <b>/positions</b>) — Voir le PnL détaillé, la Fair Value et le R:R des positions ouvertes\n"
+                        "📈 <b>/chart</b> — Générer le graphique de croissance du portefeuille et l'historique PnL\n"
+                        "🔍 <b>/edges</b> (ou <b>/scan</b>, <b>/opps</b>) — Flasher le marché instantanément et afficher les 5 meilleurs arbitrages Polymarket actuels selon le modèle\n"
+                        "🤖 <b>/status</b> — Résumé rapide (Capital, Exposure, Win Rate, Drawdown, Scans)\n"
+                        "ℹ️ <b>/help</b> (ou <b>/start</b>) — Afficher ce menu d'aide"
                     )
 
         except Exception as e:
