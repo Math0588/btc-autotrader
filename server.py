@@ -675,6 +675,7 @@ def execute(state, opp):
         "slug": opp.get("slug", ""),
         "expiry_dt": opp["expiry_dt"].isoformat() if isinstance(opp["expiry_dt"], datetime) else opp["expiry_dt"],
         "opened_at": datetime.now(timezone.utc).isoformat(), "status": "open",
+        "peak_sell_value": opp["cost"],                           # For trailing stop
     }
     state["capital"] -= opp["cost"]
     state["positions"].append(pos)
@@ -845,6 +846,20 @@ def settle(state, spot, iv_pts):
             sl_triggered = True
             sl_reason = f"Thesis dead (prob={current_model_prob*100:.1f}%)"
 
+        # ━━━ TRAILING STOP ━━━
+        # If we reached significant profit (> 50%), deploy a trailing stop to protect it.
+        # Stop triggers if value drops 30% from the peak value it reached.
+        pos["peak_sell_value"] = max(pos.get("peak_sell_value", pos["cost"]), sell_value)
+        peak_pnl_pct = (pos["peak_sell_value"] / pos["cost"]) * 100 - 100
+        
+        if peak_pnl_pct >= 50 and not tp_triggered and not sl_triggered:
+            # Trailing stop threshold (30% drop from peak value)
+            trailing_stop_value = pos["peak_sell_value"] * 0.70
+            if sell_value <= trailing_stop_value:
+                sl_triggered = True  # Using SL logic flow to exit, but it's really a profit lock
+                sl_reason = f"Trailing stop (-30% drop from +{peak_pnl_pct:.0f}% peak)"
+                pos["result"] = "TP(Trailing)" # Force result tag to Trailing TP
+
         if sl_triggered:
             state["capital"] += sell_value
             state["total_pnl"] += pnl
@@ -852,12 +867,15 @@ def settle(state, spot, iv_pts):
             state["early_sl"] += 1
             
             pos["pnl"] = round(pnl, 2)
-            pos["status"], pos["result"] = "closed", "SL(Dynamic)"
+            pos["status"], pos["result"] = "closed", pos.get("result", "SL(Dynamic)")
             pos["settled_at"] = now.isoformat()
             state["closed_trades"].append(pos)
 
-            log.info(f"\u2702\ufe0f SL: {pos['desc']} | {sl_reason} | PnL: ${pos['pnl']:+.2f} ({unrealized_pnl_pct:+.1f}%)")
-            tg_send(f"\u2702\ufe0f <b>STOP LOSS</b>: {pos['desc']}\n"
+            log_type = "TP" if "Trailing" in pos["result"] else "SL"
+            emoji = "💰" if "Trailing" in pos["result"] else "✂️"
+            
+            log.info(f"{emoji} {log_type}: {pos['desc']} | {sl_reason} | PnL: ${pos['pnl']:+.2f} ({unrealized_pnl_pct:+.1f}%)")
+            tg_send(f"{emoji} <b>{'TRAILING STOP' if 'Trailing' in pos['result'] else 'STOP LOSS'}</b>: {pos['desc']}\n"
                     f"{sl_reason}\n"
                     f"PnL: <code>${pos['pnl']:+.2f} ({unrealized_pnl_pct:+.1f}%)</code>")
             continue
